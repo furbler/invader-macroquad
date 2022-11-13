@@ -11,6 +11,22 @@ struct Character {
     pos: Vec2,
     texture: Texture2D,
 }
+
+impl Character {
+    fn draw(&self) {
+        draw_texture_ex(
+            self.texture,
+            self.pos.x - self.width / 2.,
+            self.pos.y - self.height / 2.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(self.width, self.height)),
+                ..Default::default()
+            },
+        )
+    }
+}
+
 #[macroquad::main("invader-macroquad")]
 async fn main() -> Result<(), Box<dyn Error>> {
     // キャラクターのドット絵
@@ -38,11 +54,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     loop {
-        if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+        if 0. < player.pos.x - player.width / 2.
+            && (is_key_down(KeyCode::A) || is_key_down(KeyCode::Left))
+        {
             player.pos.x -= 5.;
         }
 
-        if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+        if player.pos.x + player.width / 2. < screen_width()
+            && (is_key_down(KeyCode::D) || is_key_down(KeyCode::Right))
+        {
             player.pos.x += 5.;
         }
         // 背景色描画
@@ -58,38 +78,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         );
 
         // 描画
-        draw_texture_ex(
-            player.texture,
-            player.pos.x,
-            player.pos.y,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(Vec2::new(player.width, player.height)),
-                ..Default::default()
-            },
-        );
+        player.draw();
+        crab_down.draw();
+        crab_banzai.draw();
 
-        draw_texture_ex(
-            crab_down.texture,
-            crab_down.pos.x,
-            crab_down.pos.y,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(Vec2::new(crab_down.width, crab_down.height)),
-                ..Default::default()
-            },
-        );
-
-        draw_texture_ex(
-            crab_banzai.texture,
-            crab_banzai.pos.x,
-            crab_down.pos.y,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(Vec2::new(crab_banzai.width, crab_banzai.height)),
-                ..Default::default()
-            },
-        );
         next_frame().await
     }
 }
