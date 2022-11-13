@@ -117,8 +117,8 @@ fn convert_dot_map(dot_map: Vec<&str>) -> Vec<Vec<bool>> {
 // 指定した色に対応するrgbaの値を返す
 fn set_color(color: &str) -> Vec<u8> {
     match color {
-        "RED" => vec![255, 0, 0, 255],
         "TURQUOISE" => vec![68, 200, 210, 255], // 青緑色
+        "PURPLE" => vec![219, 85, 221, 255],    // 紫色
         _ => panic!("{}色には対応していません。プログラムを終了します。", color),
     }
 }

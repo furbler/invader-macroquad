@@ -6,8 +6,9 @@ mod dot_data;
 use crate::dot_data::dot_data;
 
 struct Character {
-    width: f32,  // 描画サイズの幅
-    height: f32, // 描画サイズの高さ
+    width: f32,  // 描画サイズの幅 [pixel]
+    height: f32, // 描画サイズの高さ [pixel]
+    pos: Vec2,
     texture: Texture2D,
 }
 #[macroquad::main("invader-macroquad")]
@@ -17,30 +18,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let crab_down_data = dot_data("crab_down");
     let crab_banzai_data = dot_data("crab_banzai");
     // ここで実際の描画サイズと色を指定する
-    let player = Character {
+    let mut player = Character {
         width: player_data.width as f32 * 3.,
         height: player_data.height as f32 * 3.,
+        pos: Vec2::new(screen_width() / 2., screen_height() - 120.),
         texture: dot_map2texture("TURQUOISE", player_data),
     };
-    let crab_down = Character {
+    let mut crab_down = Character {
         width: crab_down_data.width as f32 * 3.,
         height: crab_down_data.height as f32 * 3.,
-        texture: dot_map2texture("RED", crab_down_data),
+        pos: Vec2::new(screen_width() / 3., screen_height() / 3.),
+        texture: dot_map2texture("PURPLE", crab_down_data),
     };
-    let crab_banzai = Character {
+    let mut crab_banzai = Character {
         width: crab_banzai_data.width as f32 * 3.,
         height: crab_banzai_data.height as f32 * 3.,
-        texture: dot_map2texture("RED", crab_banzai_data),
+        pos: Vec2::new(screen_width() * 0.7, screen_height() / 3.),
+        texture: dot_map2texture("PURPLE", crab_banzai_data),
     };
 
     loop {
+        if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+            player.pos.x -= 5.;
+        }
+
+        if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+            player.pos.x += 5.;
+        }
         // 背景色描画
         clear_background(BLACK);
+        // プレイヤーの下の横線
+        draw_line(
+            0.,
+            screen_height() - 50.,
+            screen_width(),
+            screen_height() - 50.,
+            3.,
+            RED,
+        );
+
         // 描画
         draw_texture_ex(
             player.texture,
-            screen_width() / 2.,
-            screen_height() - 100.,
+            player.pos.x,
+            player.pos.y,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(player.width, player.height)),
@@ -50,8 +71,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         draw_texture_ex(
             crab_down.texture,
-            screen_width() / 3.,
-            screen_height() / 3.,
+            crab_down.pos.x,
+            crab_down.pos.y,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(crab_down.width, crab_down.height)),
@@ -61,8 +82,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         draw_texture_ex(
             crab_banzai.texture,
-            screen_width() * 0.7,
-            screen_height() / 3.,
+            crab_banzai.pos.x,
+            crab_down.pos.y,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(crab_banzai.width, crab_banzai.height)),
