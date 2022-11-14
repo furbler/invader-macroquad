@@ -48,7 +48,8 @@ struct Enemy {
     width: f32,                // 描画サイズの幅 [pixel]
     height: f32,               // 描画サイズの高さ [pixel]
     pos: Vec2,                 // 中心位置
-    moved_time: f64,           // 最後に画像切り替えした時間
+    move_turn: bool,           // 動くか否か
+    move_dir: i32,             // 移動方向(正の値は右、負の値は左に向かう)
     select_texture: bool,      // どちらの状態の画像を表示するか
     first_texture: Texture2D,  // 状態1
     second_texture: Texture2D, // 状態2
@@ -56,32 +57,39 @@ struct Enemy {
 impl Enemy {
     // コンストラクタ
     fn new(first_data: &DotShape, second_data: &DotShape, pos: Vec2, color: &str) -> Self {
+        // 引数の2つのドットマップのサイズが異なっていたらエラー
+        if first_data.width != second_data.width || first_data.height != second_data.height {
+            panic!("２つのドットマップサイズが一致しません。プログラムを終了します。");
+        }
         Enemy {
             width: first_data.width as f32 * 3.,
             height: first_data.height as f32 * 3.,
             pos,
-            moved_time: get_time(),
+            move_turn: false,
+            move_dir: 1, // 最初は必ず右に動く
             select_texture: true,
             first_texture: dot_map2texture(color, &first_data),
             second_texture: dot_map2texture(color, &second_data),
         }
     }
+    fn update(&mut self) {
+        // 動く順番でない時は何もしない
+        if !self.move_turn {
+            return;
+        }
+        // 表示画像切り替え
+        self.select_texture = !self.select_texture;
+        // 方向を考慮して移動
+        self.pos.x += 30. * self.move_dir as f32;
+    }
     // 描画
     fn draw(&mut self) {
-        let current_time = get_time();
-        // 表示画像切り替えから一定時間経過していたら
-        if current_time - self.moved_time > 1. {
-            // 表示画像切り替え
-            self.select_texture = !self.select_texture;
-            self.moved_time = current_time;
-        }
         let texture;
         if self.select_texture {
             texture = self.first_texture;
         } else {
             texture = self.second_texture;
         }
-
         draw_texture_ex(
             texture,
             self.pos.x - self.width / 2.,
@@ -150,9 +158,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ));
         invader_pos.x += 50.;
     }
+    // 一番左下の敵インベーダーから動く
+    enemy_list[0].move_turn = true;
 
     loop {
         player.update();
+        for enemy in enemy_list.iter_mut() {
+            enemy.update();
+        }
         // 背景色描画
         clear_background(BLACK);
         // プレイヤー下の横線
@@ -169,6 +182,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // 敵描画
         for enemy in enemy_list.iter_mut() {
             enemy.draw();
+        }
+        // 移動する敵インベーダーの個体番号を取得
+        let mut move_enemy_index = 0;
+        for (index, enemy) in enemy_list.iter().enumerate() {
+            if enemy.move_turn {
+                move_enemy_index = index;
+                break;
+            }
+        }
+        // 移動する個体を変える
+        enemy_list[move_enemy_index].move_turn = false;
+        move_enemy_index += 1;
+        if move_enemy_index >= enemy_list.len() {
+            // 最後の個体だったら、最初の個体に戻る
+            enemy_list[0].move_turn = true;
+        } else {
+            // 次の個体を動かす
+            enemy_list[move_enemy_index].move_turn = true;
         }
 
         next_frame().await
