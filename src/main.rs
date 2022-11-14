@@ -5,6 +5,9 @@ use std::error::Error;
 mod dot_data;
 use crate::dot_data::dot_data;
 
+// 敵インベーダーの列数と行数
+const COLUMN: usize = 11;
+
 struct Player {
     width: f32,  // 描画サイズの幅 [pixel]
     height: f32, // 描画サイズの高さ [pixel]
@@ -26,6 +29,7 @@ impl Player {
             self.pos.x += 5.;
         }
     }
+    // 描画
     fn draw(&self) {
         draw_texture_ex(
             self.texture,
@@ -44,19 +48,32 @@ struct Enemy {
     width: f32,                // 描画サイズの幅 [pixel]
     height: f32,               // 描画サイズの高さ [pixel]
     pos: Vec2,                 // 中心位置
-    switched_time: f64,        // 最後に画像切り替えした時間
+    moved_time: f64,           // 最後に画像切り替えした時間
     select_texture: bool,      // どちらの状態の画像を表示するか
     first_texture: Texture2D,  // 状態1
     second_texture: Texture2D, // 状態2
 }
 impl Enemy {
+    // コンストラクタ
+    fn new(first_data: &DotShape, second_data: &DotShape, pos: Vec2, color: &str) -> Self {
+        Enemy {
+            width: first_data.width as f32 * 3.,
+            height: first_data.height as f32 * 3.,
+            pos,
+            moved_time: get_time(),
+            select_texture: true,
+            first_texture: dot_map2texture(color, &first_data),
+            second_texture: dot_map2texture(color, &second_data),
+        }
+    }
+    // 描画
     fn draw(&mut self) {
         let current_time = get_time();
         // 表示画像切り替えから一定時間経過していたら
-        if current_time - self.switched_time > 1. {
+        if current_time - self.moved_time > 1. {
             // 表示画像切り替え
             self.select_texture = !self.select_texture;
-            self.switched_time = current_time;
+            self.moved_time = current_time;
         }
         let texture;
         if self.select_texture {
@@ -93,43 +110,52 @@ async fn main() -> Result<(), Box<dyn Error>> {
         width: player_data.width as f32 * 3.,
         height: player_data.height as f32 * 3.,
         pos: Vec2::new(screen_width() / 2., screen_height() - 120.),
-        texture: dot_map2texture("TURQUOISE", player_data),
+        texture: dot_map2texture("TURQUOISE", &player_data),
     };
-    let mut crab = Enemy {
-        width: crab_down_data.width as f32 * 3.,
-        height: crab_down_data.height as f32 * 3.,
-        pos: Vec2::new(screen_width() / 3., screen_height() / 3.),
-        switched_time: get_time(),
-        select_texture: true,
-        first_texture: dot_map2texture("TURQUOISE", crab_banzai_data),
-        second_texture: dot_map2texture("TURQUOISE", crab_down_data),
-    };
-
-    let mut octopus = Enemy {
-        width: octopus_open_data.width as f32 * 3.,
-        height: octopus_open_data.height as f32 * 3.,
-        pos: Vec2::new(screen_width() / 2., screen_height() / 2.),
-        switched_time: get_time(),
-        select_texture: true,
-        first_texture: dot_map2texture("PURPLE", octopus_open_data),
-        second_texture: dot_map2texture("PURPLE", octopus_close_data),
-    };
-
-    let mut squid = Enemy {
-        width: squid_open_data.width as f32 * 3.,
-        height: squid_open_data.height as f32 * 3.,
-        pos: Vec2::new(screen_width() * 2. / 3., screen_height() * 2. / 3.),
-        switched_time: get_time(),
-        select_texture: true,
-        first_texture: dot_map2texture("GREEN", squid_open_data),
-        second_texture: dot_map2texture("GREEN", squid_close_data),
-    };
+    // 敵インベーダーを入れるリスト
+    let mut enemy_list = Vec::new();
+    let mut invader_pos = Vec2::new(100., screen_height() - 300.);
+    for _i in 0..2 {
+        for _k in 0..COLUMN {
+            enemy_list.push(Enemy::new(
+                &octopus_open_data,
+                &octopus_close_data,
+                invader_pos,
+                "PURPLE",
+            ));
+            invader_pos.x += 50.;
+        }
+        invader_pos.x = 100.;
+        invader_pos.y -= 50.;
+    }
+    for _i in 0..2 {
+        for _k in 0..COLUMN {
+            enemy_list.push(Enemy::new(
+                &crab_banzai_data,
+                &crab_down_data,
+                invader_pos,
+                "TURQUOISE",
+            ));
+            invader_pos.x += 50.;
+        }
+        invader_pos.x = 100.;
+        invader_pos.y -= 50.;
+    }
+    for _i in 0..COLUMN {
+        enemy_list.push(Enemy::new(
+            &squid_open_data,
+            &squid_close_data,
+            invader_pos,
+            "GREEN",
+        ));
+        invader_pos.x += 50.;
+    }
 
     loop {
         player.update();
         // 背景色描画
         clear_background(BLACK);
-        // プレイヤーの下の横線
+        // プレイヤー下の横線
         draw_line(
             0.,
             screen_height() - 50.,
@@ -138,18 +164,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
             3.,
             RED,
         );
-        // 描画
+        // プレイヤー描画
         player.draw();
-        octopus.draw();
-        crab.draw();
-        squid.draw();
+        // 敵描画
+        for enemy in enemy_list.iter_mut() {
+            enemy.draw();
+        }
 
         next_frame().await
     }
 }
 
 // ドットデータをテクスチャデータに変換
-fn dot_map2texture(color: &str, chara: DotShape) -> Texture2D {
+fn dot_map2texture(color: &str, chara: &DotShape) -> Texture2D {
     let texture = Texture2D::from_rgba8(
         chara.width,
         chara.height,
