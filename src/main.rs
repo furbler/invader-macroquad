@@ -5,11 +5,14 @@ use std::error::Error;
 mod dot_data;
 use crate::dot_data::dot_data;
 
+const BACKGROUND_COLOR: &str = "BLACK";
+
 struct Player {
     width: f32,  // 描画サイズの幅 [pixel]
     height: f32, // 描画サイズの高さ [pixel]
     pos: Vec2,   // 中心位置
     texture: Texture2D,
+    shadow: Texture2D, // 背景色
 }
 impl Player {
     // プレイヤー移動
@@ -26,8 +29,18 @@ impl Player {
             self.pos.x += 5.;
         }
     }
-    // 描画
     fn draw(&self) {
+        // 背景色で塗りつぶし
+        draw_texture_ex(
+            self.shadow,
+            self.pos.x - self.width / 2.,
+            self.pos.y - self.height / 2.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(self.width, self.height)),
+                ..Default::default()
+            },
+        );
         draw_texture_ex(
             self.texture,
             self.pos.x - self.width / 2.,
@@ -37,7 +50,7 @@ impl Player {
                 dest_size: Some(Vec2::new(self.width, self.height)),
                 ..Default::default()
             },
-        )
+        );
     }
 }
 
@@ -48,7 +61,9 @@ struct Enemy {
     move_turn: bool,           // 動くか否か
     select_texture: bool,      // どちらの状態の画像を表示するか
     first_texture: Texture2D,  // 状態1
+    first_shadow: Texture2D,   // 背景色
     second_texture: Texture2D, // 状態2
+    second_shadow: Texture2D,  // 背景色
 }
 impl Enemy {
     // コンストラクタ
@@ -64,7 +79,9 @@ impl Enemy {
             move_turn: false,
             select_texture: true,
             first_texture: dot_map2texture(color, &first_data),
+            first_shadow: dot_map2texture(BACKGROUND_COLOR, &first_data),
             second_texture: dot_map2texture(color, &second_data),
+            second_shadow: dot_map2texture(BACKGROUND_COLOR, &second_data),
         }
     }
     fn update(&mut self, move_dir: i32) {
@@ -80,11 +97,25 @@ impl Enemy {
     // 描画
     fn draw(&mut self) {
         let texture;
+        let shadow;
         if self.select_texture {
             texture = self.first_texture;
+            shadow = self.first_shadow;
         } else {
             texture = self.second_texture;
+            shadow = self.second_shadow;
         }
+        // 背景色で塗りつぶし
+        draw_texture_ex(
+            shadow,
+            self.pos.x - self.width / 2.,
+            self.pos.y - self.height / 2.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(self.width, self.height)),
+                ..Default::default()
+            },
+        );
         draw_texture_ex(
             texture,
             self.pos.x - self.width / 2.,
@@ -117,6 +148,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         height: player_data.height as f32 * 3.,
         pos: Vec2::new(screen_width() / 2., screen_height() - 120.),
         texture: dot_map2texture("TURQUOISE", &player_data),
+        shadow: dot_map2texture(BACKGROUND_COLOR, &player_data),
     };
     // 敵インベーダーを入れるリスト
     let mut enemy_list = Vec::new();
@@ -166,14 +198,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut move_dir = 1;
     // 次の移動方向を反転すべきか否か
     let mut move_dir_invert = false;
-
+    // 背景描画
+    clear_background(BLACK);
     loop {
         player.update();
         for enemy in enemy_list.iter_mut() {
             enemy.update(move_dir);
         }
-        // 背景色描画
-        clear_background(BLACK);
         // プレイヤー下の横線
         draw_line(
             0.,
