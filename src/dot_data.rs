@@ -85,10 +85,71 @@ pub fn dot_data(name: &str) -> DotShape {
         ]),
     };
 
+    let octopus_open = DotShape {
+        width: 12,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ # # # # _ _ _ _",
+            "_ # # # # # # # # # # _",
+            "# # # # # # # # # # # #",
+            "# # # _ _ # # _ _ # # _",
+            "# # # # # # # # # # # #",
+            "_ _ _ # # _ _ # # _ _ _",
+            "_ _ # # _ # # _ # # # #",
+            "# # _ _ _ _ _ _ _ _ # #",
+        ]),
+    };
+
+    let octopus_close = DotShape {
+        width: 12,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ # # # # _ _ _ _",
+            "_ # # # # # # # # # # _",
+            "# # # # # # # # # # # #",
+            "# # # _ _ # # _ _ # # _",
+            "# # # # # # # # # # # #",
+            "_ _ # # # _ _ # # # _ _",
+            "_ # # _ _ # # _ _ # # _",
+            "_ _ # # _ _ _ _ # # _ _",
+        ]),
+    };
+    let squid_open = DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ # # _ _ _",
+            "_ _ # # # # _ _",
+            "_ # # # # # # _",
+            "# # _ # # _ # #",
+            "# # # # # # # #",
+            "_ _ # _ _ # _ _",
+            "_ # _ # # _ # _",
+            "# _ # _ _ # _ #",
+        ]),
+    };
+    let squid_close = DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ # # _ _ _",
+            "_ _ # # # # _ _",
+            "_ # # # # # # _",
+            "# # _ # # _ # #",
+            "# # # # # # # #",
+            "_ # _ # # _ # _",
+            "# _ _ _ _ _ _ #",
+            "_ # _ _ _ _ # _",
+        ]),
+    };
     match name {
         "player" => player,
         "crab_down" => crab_down,
         "crab_banzai" => crab_banzai,
+        "octopus_open" => octopus_open,
+        "octopus_close" => octopus_close,
+        "squid_open" => squid_open,
+        "squid_close" => squid_close,
         _ => panic!(
             "{}のドットマップ取得に失敗しました。プログラムを終了します。",
             name
@@ -119,6 +180,7 @@ fn set_color(color: &str) -> Vec<u8> {
     match color {
         "TURQUOISE" => vec![68, 200, 210, 255], // 青緑色
         "PURPLE" => vec![219, 85, 221, 255],    // 紫色
+        "GREEN" => vec![98, 222, 109, 255],     // 緑色
         _ => panic!("{}色には対応していません。プログラムを終了します。", color),
     }
 }

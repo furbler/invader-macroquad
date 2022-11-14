@@ -80,10 +80,14 @@ impl Enemy {
 
 #[macroquad::main("invader-macroquad")]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // キャラクターのドット絵
+    // キャラクターのドット絵読み込み
     let player_data = dot_data("player");
     let crab_down_data = dot_data("crab_down");
     let crab_banzai_data = dot_data("crab_banzai");
+    let octopus_open_data = dot_data("octopus_open");
+    let octopus_close_data = dot_data("octopus_close");
+    let squid_open_data = dot_data("squid_open");
+    let squid_close_data = dot_data("squid_close");
     // ここで実際の描画サイズと色を指定する
     let mut player = Player {
         width: player_data.width as f32 * 3.,
@@ -97,8 +101,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
         pos: Vec2::new(screen_width() / 3., screen_height() / 3.),
         switched_time: get_time(),
         select_texture: true,
-        first_texture: dot_map2texture("PURPLE", crab_banzai_data),
-        second_texture: dot_map2texture("PURPLE", crab_down_data),
+        first_texture: dot_map2texture("TURQUOISE", crab_banzai_data),
+        second_texture: dot_map2texture("TURQUOISE", crab_down_data),
+    };
+
+    let mut octopus = Enemy {
+        width: octopus_open_data.width as f32 * 3.,
+        height: octopus_open_data.height as f32 * 3.,
+        pos: Vec2::new(screen_width() / 2., screen_height() / 2.),
+        switched_time: get_time(),
+        select_texture: true,
+        first_texture: dot_map2texture("PURPLE", octopus_open_data),
+        second_texture: dot_map2texture("PURPLE", octopus_close_data),
+    };
+
+    let mut squid = Enemy {
+        width: squid_open_data.width as f32 * 3.,
+        height: squid_open_data.height as f32 * 3.,
+        pos: Vec2::new(screen_width() * 2. / 3., screen_height() * 2. / 3.),
+        switched_time: get_time(),
+        select_texture: true,
+        first_texture: dot_map2texture("GREEN", squid_open_data),
+        second_texture: dot_map2texture("GREEN", squid_close_data),
     };
 
     loop {
@@ -116,7 +140,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         );
         // 描画
         player.draw();
+        octopus.draw();
         crab.draw();
+        squid.draw();
 
         next_frame().await
     }
