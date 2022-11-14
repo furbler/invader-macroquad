@@ -5,9 +5,6 @@ use std::error::Error;
 mod dot_data;
 use crate::dot_data::dot_data;
 
-// 敵インベーダーの列数と行数
-const COLUMN: usize = 11;
-
 struct Player {
     width: f32,  // 描画サイズの幅 [pixel]
     height: f32, // 描画サイズの高さ [pixel]
@@ -49,7 +46,6 @@ struct Enemy {
     height: f32,               // 描画サイズの高さ [pixel]
     pos: Vec2,                 // 中心位置
     move_turn: bool,           // 動くか否か
-    move_dir: i32,             // 移動方向(正の値は右、負の値は左に向かう)
     select_texture: bool,      // どちらの状態の画像を表示するか
     first_texture: Texture2D,  // 状態1
     second_texture: Texture2D, // 状態2
@@ -66,13 +62,12 @@ impl Enemy {
             height: first_data.height as f32 * 3.,
             pos,
             move_turn: false,
-            move_dir: 1, // 最初は必ず右に動く
             select_texture: true,
             first_texture: dot_map2texture(color, &first_data),
             second_texture: dot_map2texture(color, &second_data),
         }
     }
-    fn update(&mut self) {
+    fn update(&mut self, move_dir: i32) {
         // 動く順番でない時は何もしない
         if !self.move_turn {
             return;
@@ -80,7 +75,7 @@ impl Enemy {
         // 表示画像切り替え
         self.select_texture = !self.select_texture;
         // 方向を考慮して移動
-        self.pos.x += 30. * self.move_dir as f32;
+        self.pos.x += 30. * move_dir as f32;
     }
     // 描画
     fn draw(&mut self) {
@@ -105,6 +100,9 @@ impl Enemy {
 
 #[macroquad::main("invader-macroquad")]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // 敵インベーダーの列数と行数
+    const COLUMN: usize = 11;
+
     // キャラクターのドット絵読み込み
     let player_data = dot_data("player");
     let crab_down_data = dot_data("crab_down");
@@ -161,10 +159,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // 一番左下の敵インベーダーから動く
     enemy_list[0].move_turn = true;
 
+    // 敵インベーダーが折り返す境界線の位置
+    let left_border = 80.;
+    let right_border = screen_width() - 80.;
+    // 移動方向(正の値は右、負の値は左に向かう)
+    let mut move_dir = 1;
+    // 次の移動方向を反転すべきか否か
+    let mut move_dir_invert = false;
+
     loop {
         player.update();
         for enemy in enemy_list.iter_mut() {
-            enemy.update();
+            enemy.update(move_dir);
         }
         // 背景色描画
         clear_background(BLACK);
@@ -183,7 +189,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         for enemy in enemy_list.iter_mut() {
             enemy.draw();
         }
-        // 移動する敵インベーダーの個体番号を取得
+        // 移動した敵インベーダーの個体番号を取得
         let mut move_enemy_index = 0;
         for (index, enemy) in enemy_list.iter().enumerate() {
             if enemy.move_turn {
@@ -191,12 +197,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 break;
             }
         }
+        // 制限範囲外に出た敵個体がいた場合
+        if enemy_list[move_enemy_index].pos.x < left_border
+            || right_border < enemy_list[move_enemy_index].pos.x
+        {
+            // 移動方向反転フラグを立てる
+            move_dir_invert = true;
+        }
         // 移動する個体を変える
         enemy_list[move_enemy_index].move_turn = false;
         move_enemy_index += 1;
         if move_enemy_index >= enemy_list.len() {
             // 最後の個体だったら、最初の個体に戻る
             enemy_list[0].move_turn = true;
+            // 移動方向反転フラグが立っている場合
+            if move_dir_invert {
+                // 実際に移動方向を反転
+                move_dir *= -1;
+                move_dir_invert = false;
+            }
         } else {
             // 次の個体を動かす
             enemy_list[move_enemy_index].move_turn = true;
