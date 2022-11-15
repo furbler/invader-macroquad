@@ -7,16 +7,46 @@ use crate::dot_data::dot_data;
 
 const BACKGROUND_COLOR: &str = "BLACK";
 
+struct Bullet {
+    width: f32,  // 描画サイズの幅 [pixel]
+    height: f32, // 描画サイズの高さ [pixel]
+    pos: Vec2,   // 中心位置
+    live: bool,  // 弾が存在しているか否か
+    texture: Texture2D,
+    shadow: Texture2D, // 背景色
+}
+
 struct Player {
     width: f32,  // 描画サイズの幅 [pixel]
     height: f32, // 描画サイズの高さ [pixel]
     pos: Vec2,   // 中心位置
     texture: Texture2D,
     shadow: Texture2D, // 背景色
+    bullet: Bullet,    // 弾
 }
 impl Player {
-    // プレイヤー移動
     fn update(&mut self) {
+        // 弾が存在していたら
+        if self.bullet.live {
+            // 弾の移動処理
+            self.bullet.pos.y -= 13.;
+            // 弾が画面上の外側に行ったら
+            if self.bullet.pos.y < 0. {
+                // 弾を消す
+                self.bullet.live = false;
+            }
+        }
+        // 発射ボタンが押された場合(スペース、上矢印、Enter)
+        if is_key_down(KeyCode::Space) || is_key_down(KeyCode::Up) || is_key_down(KeyCode::Enter) {
+            // 弾が画面上に存在しない場合
+            if !self.bullet.live {
+                self.bullet.pos.x = self.pos.x;
+                self.bullet.pos.y = self.pos.y - self.height;
+                self.bullet.live = true;
+            }
+        }
+
+        // プレイヤー移動範囲制限
         if 0. < self.pos.x - self.width / 2.
             && (is_key_down(KeyCode::A) || is_key_down(KeyCode::Left))
         {
@@ -30,6 +60,7 @@ impl Player {
         }
     }
     fn draw(&self) {
+        // プレイヤー
         // 背景色で塗りつぶし
         draw_texture_ex(
             self.shadow,
@@ -51,6 +82,30 @@ impl Player {
                 ..Default::default()
             },
         );
+        // プレイヤーの弾が存在する時のみ描画する
+        if self.bullet.live {
+            // 背景色で塗りつぶし
+            draw_texture_ex(
+                self.bullet.shadow,
+                self.bullet.pos.x - self.bullet.width / 2.,
+                self.bullet.pos.y - self.bullet.height / 2.,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(Vec2::new(self.bullet.width, self.bullet.height)),
+                    ..Default::default()
+                },
+            );
+            draw_texture_ex(
+                self.bullet.texture,
+                self.bullet.pos.x - self.bullet.width / 2.,
+                self.bullet.pos.y - self.bullet.height / 2.,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(Vec2::new(self.bullet.width, self.bullet.height)),
+                    ..Default::default()
+                },
+            );
+        }
     }
 }
 
@@ -136,6 +191,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // キャラクターのドット絵読み込み
     let player_data = dot_data("player");
+    let bullet_player_data = dot_data("bullet_player");
     let crab_down_data = dot_data("crab_down");
     let crab_banzai_data = dot_data("crab_banzai");
     let octopus_open_data = dot_data("octopus_open");
@@ -149,6 +205,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         pos: Vec2::new(screen_width() / 2., screen_height() - 120.),
         texture: dot_map2texture("TURQUOISE", &player_data),
         shadow: dot_map2texture(BACKGROUND_COLOR, &player_data),
+        bullet: Bullet {
+            width: bullet_player_data.width as f32 * 3.,
+            height: bullet_player_data.height as f32 * 3.,
+            pos: Vec2::new(0., 0.),
+            live: false,
+            texture: dot_map2texture("TURQUOISE", &player_data),
+            shadow: dot_map2texture(BACKGROUND_COLOR, &player_data),
+        },
     };
     // 敵インベーダーを入れるリスト
     let mut enemy_list = Vec::new();
@@ -200,11 +264,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut move_dir_invert = false;
     // 背景描画
     clear_background(BLACK);
+
     loop {
-        player.update();
-        for enemy in enemy_list.iter_mut() {
-            enemy.update(move_dir);
-        }
         // プレイヤー下の横線
         draw_line(
             0.,
@@ -214,6 +275,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             3.,
             RED,
         );
+        player.update();
+        for enemy in enemy_list.iter_mut() {
+            enemy.update(move_dir);
+        }
         // プレイヤー描画
         player.draw();
         // 敵描画

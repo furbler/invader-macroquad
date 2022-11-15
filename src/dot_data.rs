@@ -56,6 +56,11 @@ pub fn dot_data(name: &str) -> DotShape {
             "# # # # # # # # # # # # #",
         ]),
     };
+    let bullet_player = DotShape {
+        width: 1,
+        height: 6,
+        dot_map: convert_dot_map(vec!["#", "#", "#", "#", "#", "#"]),
+    };
     let crab_down = DotShape {
         width: 11,
         height: 8,
@@ -144,6 +149,7 @@ pub fn dot_data(name: &str) -> DotShape {
     };
     match name {
         "player" => player,
+        "bullet_player" => bullet_player,
         "crab_down" => crab_down,
         "crab_banzai" => crab_banzai,
         "octopus_open" => octopus_open,
