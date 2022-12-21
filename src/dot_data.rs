@@ -22,8 +22,8 @@ impl DotShape {
                 panic!("ドットマップの形が不正です。");
             }
         }
-
-        let background: Vec<u8> = vec![0, 0, 0, 255];
+        // 背景を透過する部分
+        let background: Vec<u8> = vec![0, 0, 0, 0];
         // 真っ白だと目に負担があるので少し暗くする
         let foreground: Vec<u8> = vec![200, 200, 200, 255];
 
@@ -62,6 +62,7 @@ pub fn dot_data(name: &str) -> DotShape {
         height: 6,
         dot_map: convert_dot_map(vec!["#", "#", "#", "#", "#", "#"]),
     };
+
     let crab_down = DotShape {
         width: 11,
         height: 8,
@@ -98,10 +99,10 @@ pub fn dot_data(name: &str) -> DotShape {
             "_ _ _ _ # # # # _ _ _ _",
             "_ # # # # # # # # # # _",
             "# # # # # # # # # # # #",
-            "# # # _ _ # # _ _ # # _",
+            "# # # _ _ # # _ _ # # #",
             "# # # # # # # # # # # #",
             "_ _ _ # # _ _ # # _ _ _",
-            "_ _ # # _ # # _ # # # #",
+            "_ _ # # _ # # _ # # _ _",
             "# # _ _ _ _ _ _ _ _ # #",
         ]),
     };
@@ -113,7 +114,7 @@ pub fn dot_data(name: &str) -> DotShape {
             "_ _ _ _ # # # # _ _ _ _",
             "_ # # # # # # # # # # _",
             "# # # # # # # # # # # #",
-            "# # # _ _ # # _ _ # # _",
+            "# # # _ _ # # _ _ # # #",
             "# # # # # # # # # # # #",
             "_ _ # # # _ _ # # # _ _",
             "_ # # _ _ # # _ _ # # _",
@@ -148,6 +149,7 @@ pub fn dot_data(name: &str) -> DotShape {
             "_ # _ _ _ _ # _",
         ]),
     };
+
     match name {
         "player" => player,
         "bullet_player" => bullet_player,

@@ -1,5 +1,6 @@
 use dot_data::DotShape;
 use macroquad::prelude::*;
+use macroquad::window;
 use std::error::Error;
 
 mod dot_data;
@@ -35,7 +36,7 @@ impl Player {
             }
         }
         // 発射ボタンが押された場合(スペース、上矢印、Enter)
-        if is_key_down(KeyCode::Space) || is_key_down(KeyCode::Up) || is_key_down(KeyCode::Enter) {
+        if is_key_down(KeyCode::Space) || is_key_down(KeyCode::Enter) {
             // 弾が画面上に存在しない場合
             if !self.bullet.live {
                 self.bullet.pos.x = self.pos.x;
@@ -88,10 +89,9 @@ impl Player {
     }
 }
 
-#[macroquad::main("invader-macroquad")]
+#[macroquad::main(window_conf)]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // 敵インベーダーの列数と行数
-    const COLUMN: usize = 11;
+    window::request_new_screen_size(108., 108.);
 
     // キャラクターのドット絵読み込み
     let player_data = dot_data("player");
@@ -112,21 +112,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
             texture: dot_map2texture(&player_data),
         },
     };
-    clear_background(BLACK);
-    // プレイヤー下の横線
-    draw_line(
-        0.,
-        screen_height() - 50.,
-        screen_width(),
-        screen_height() - 50.,
-        3.,
-        RED,
-    );
 
     loop {
         clear_background(BLACK);
+        // プレイヤー下の横線
+        draw_line(
+            0.,
+            screen_height() - 50.,
+            screen_width(),
+            screen_height() - 50.,
+            1.,
+            RED,
+        );
         player.update();
-        // プレイヤー描画
+        // プレイヤー表示
         player.draw();
         next_frame().await
     }
@@ -137,4 +136,13 @@ fn dot_map2texture(chara: &DotShape) -> Texture2D {
     let texture = Texture2D::from_rgba8(chara.width, chara.height, &chara.create_color_dot_map());
     texture.set_filter(FilterMode::Nearest);
     texture
+}
+// ウィンドウサイズを指定
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "invader-macroquad".to_owned(),
+        window_width: 208 * 3,
+        window_height: 208 * 3,
+        ..Default::default()
+    }
 }
