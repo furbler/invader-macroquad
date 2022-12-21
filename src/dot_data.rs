@@ -7,7 +7,7 @@ pub struct DotShape {
 
 impl DotShape {
     // 真偽値で表されたドットマップをmacroquadで利用できるVec<u8>に変換
-    pub fn create_color_dot_map(&self, color_str: &str) -> Vec<u8> {
+    pub fn create_color_dot_map(&self) -> Vec<u8> {
         // 指定されたサイズと実際のドットマップのサイズが一致しているか確認
         if self.height as usize != self.dot_map.len() {
             panic!("指定されたドットマップの高さが実際のデータと異なります。");
@@ -23,14 +23,15 @@ impl DotShape {
             }
         }
 
-        let color = set_color(color_str);
-        let background: Vec<u8> = vec![0, 0, 0, 0];
+        let background: Vec<u8> = vec![0, 0, 0, 255];
+        // 真っ白だと目に負担があるので少し暗くする
+        let foreground: Vec<u8> = vec![200, 200, 200, 255];
 
         let mut bytes: Vec<u8> = Vec::new();
         for line in &self.dot_map {
             for c in line {
                 if *c {
-                    bytes.write(&color).unwrap();
+                    bytes.write(&foreground).unwrap();
                 } else {
                     bytes.write(&background).unwrap();
                 }
@@ -179,15 +180,4 @@ fn convert_dot_map(dot_map: Vec<&str>) -> Vec<Vec<bool>> {
         bool_map.push(bool_line);
     }
     bool_map
-}
-
-// 指定した色に対応するrgbaの値を返す
-fn set_color(color: &str) -> Vec<u8> {
-    match color {
-        "TURQUOISE" => vec![68, 200, 210, 255], // 青緑色
-        "PURPLE" => vec![219, 85, 221, 255],    // 紫色
-        "GREEN" => vec![98, 222, 109, 255],     // 緑色
-        "BLACK" => vec![0, 0, 0, 255],          // 黒色
-        _ => panic!("{}色には対応していません。プログラムを終了します。", color),
-    }
 }
