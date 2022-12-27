@@ -1,13 +1,12 @@
-use std::io::Write;
 pub struct DotShape {
-    pub width: u16,              // 幅[ドット]
-    pub height: u16,             // 高さ[ドット]
+    pub width: i32,              // 幅[ドット]
+    pub height: i32,             // 高さ[ドット]
     pub dot_map: Vec<Vec<bool>>, // 描画部分は#、非描画部分は_で表す
 }
 
 impl DotShape {
-    // 真偽値で表されたドットマップをmacroquadで利用できるVec<u8>に変換
-    pub fn create_color_dot_map(&self) -> Vec<u8> {
+    // 真偽値で表されたドットマップを時計回りに90度回転させたVec<u8>に変換
+    pub fn create_dot_map(&self) -> Vec<u8> {
         // 指定されたサイズと実際のドットマップのサイズが一致しているか確認
         if self.height as usize != self.dot_map.len() {
             panic!("指定されたドットマップの高さが実際のデータと異なります。");
@@ -22,18 +21,16 @@ impl DotShape {
                 panic!("ドットマップの形が不正です。");
             }
         }
-        // 背景を透過する部分
-        let background: Vec<u8> = vec![0, 0, 0, 0];
-        // 真っ白だと目に負担があるので少し暗くする
-        let foreground: Vec<u8> = vec![200, 200, 200, 255];
-
-        let mut bytes: Vec<u8> = Vec::new();
-        for line in &self.dot_map {
-            for c in line {
-                if *c {
-                    bytes.write(&foreground).unwrap();
-                } else {
-                    bytes.write(&background).unwrap();
+        // 1列8ピクセルを8bitで表す
+        if self.height != 8 {
+            panic!("高さは8でなければなりません。");
+        }
+        // 元のboolの二次元配列に対し時計回りに90度回転させる
+        let mut bytes: Vec<u8> = vec![0; self.width as usize];
+        for (i_row, line) in self.dot_map.iter().enumerate() {
+            for (i_col, dot) in line.iter().enumerate() {
+                if *dot {
+                    bytes[i_col] = bytes[i_col] | (1 << i_row);
                 }
             }
         }
@@ -42,7 +39,7 @@ impl DotShape {
 }
 
 // ドットデータを変更する際はこの中身のみ変更する
-pub fn dot_data(name: &str) -> DotShape {
+pub fn ret_dot_data(name: &str) -> DotShape {
     let player = DotShape {
         width: 13,
         height: 8,
@@ -59,8 +56,8 @@ pub fn dot_data(name: &str) -> DotShape {
     };
     let bullet_player = DotShape {
         width: 1,
-        height: 6,
-        dot_map: convert_dot_map(vec!["#", "#", "#", "#", "#", "#"]),
+        height: 8,
+        dot_map: convert_dot_map(vec!["#", "#", "#", "#", "#", "#", "#", "#"]),
     };
 
     let crab_down = DotShape {
