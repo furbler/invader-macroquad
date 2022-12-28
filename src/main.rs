@@ -43,7 +43,7 @@ impl DotMap {
                         color_bytes.write(&[0, 0, 0, 255]).unwrap();
                     } else {
                         // 真っ白だと目に負担があるので少し暗くする
-                        color_bytes.write(&[200, 200, 200, 255]).unwrap();
+                        color_bytes.write(&pos2rgba(i_char)).unwrap();
                     }
                 }
             }
@@ -74,7 +74,8 @@ impl Bullet {
             // 弾の移動処理
             self.pos.y -= 3;
             // 弾が画面上部に行ったら
-            if self.pos.y < 8 {
+            if self.pos.y < 0 {
+                self.pos.y = 0;
                 // 弾を消す
                 self.live = false;
                 self.erase(dot_map);
@@ -224,4 +225,37 @@ fn window_conf() -> Conf {
         window_height: DOT_HEIGHT * 3,
         ..Default::default()
     }
+}
+
+enum Color {
+    Red,       // 赤色
+    Purple,    // 紫色
+    BLUE,      // 青色
+    Green,     // 緑色
+    Turquoise, // 水色
+    Yellow,    // 黄色
+}
+// 指定した色に対応するrgbaの値を返す
+fn set_color(color: Color) -> [u8; 4] {
+    match color {
+        Color::Red => [210, 0, 0, 255],          // 赤色
+        Color::Purple => [219, 85, 221, 255],    // 紫色
+        Color::BLUE => [83, 83, 241, 255],       // 青色
+        Color::Green => [98, 222, 109, 255],     // 緑色
+        Color::Turquoise => [68, 200, 210, 255], // 水色
+        Color::Yellow => [190, 180, 80, 255],    // 黄色
+    }
+}
+// 引数の位置に対応したrgba値を返す
+fn pos2rgba(char_y: usize) -> [u8; 4] {
+    let color = match char_y {
+        0 | 20..=22 | 25 => Color::Red,
+        1 | 12..=15 => Color::Purple,
+        2 | 3 => Color::BLUE,
+        4..=7 => Color::Green,
+        8..=11 | 23 | 24 => Color::Turquoise,
+        16..=19 => Color::Yellow,
+        _ => panic!("文字単位で{}行目は画面からはみだしています。", char_y),
+    };
+    set_color(color)
 }
