@@ -52,6 +52,74 @@ impl DotMap {
     }
 }
 
+struct Bullet {
+    pos: IVec2,      // 左上位置
+    pre_pos: IVec2,  // 前回描画時の位置
+    live: bool,      // 弾が存在しているか否か
+    sprite: Vec<u8>, // 左側から縦8ピクセルずつを8bitのベクタで表す
+}
+
+impl Bullet {
+    // 弾を発射
+    fn fire(&mut self, x: i32, y: i32) {
+        // 弾が画面上に存在しない場合
+        if !self.live {
+            self.pos = IVec2::new(x, y);
+            self.live = true;
+        }
+    }
+    fn update(&mut self, player_pos: IVec2, dot_map: &mut DotMap) {
+        // 弾が存在していたら
+        if self.live {
+            // 弾の移動処理
+            self.pos.y -= 3;
+            // 弾が画面上部に行ったら
+            if self.pos.y < 8 {
+                // 弾を消す
+                self.live = false;
+                self.erase(dot_map);
+            }
+        } else {
+            // 発射ボタンが押された場合(スペース、Enter)
+            if is_key_down(KeyCode::Space) || is_key_down(KeyCode::Enter) {
+                self.fire(player_pos.x + 7, player_pos.y - 8);
+            }
+        }
+    }
+
+    // プレイヤーの弾をドットマップに描画(縦方向のバイト境界をまたぐ可能性有り)
+    fn array_sprite(&mut self, dot_map: &mut DotMap) {
+        if !self.live {
+            return;
+        }
+        self.erase(dot_map);
+        // 移動後描画する
+        let char_y = (self.pos.y / 8) as usize;
+        let char_offset_bit = (self.pos.y % 8) as u8;
+        // 1にしたいbitには1、透過部分には0をおく
+        let bit_mask: u8 = self.sprite[0] << char_offset_bit;
+        dot_map.map[char_y][self.pos.x as usize] |= bit_mask;
+        // 下側にはみ出した部分
+        let bit_mask = self.sprite[0] >> (7 - char_offset_bit);
+        dot_map.map[char_y + 1][self.pos.x as usize] |= bit_mask;
+
+        self.pre_pos = self.pos;
+    }
+    // 描画された弾を透過ありで消す
+    fn erase(&self, dot_map: &mut DotMap) {
+        // 前回描画した部分を0で消す
+        let char_y = (self.pre_pos.y / 8) as usize;
+        let char_offset_bit = (self.pre_pos.y % 8) as u8;
+        // 0クリアしたいbitには0、透過部分には1をおく
+        //上側
+        let bit_mask: u8 = !(self.sprite[0] << char_offset_bit);
+        dot_map.map[char_y][self.pre_pos.x as usize] &= bit_mask;
+        // 下側にはみ出した部分
+        let bit_mask = !(self.sprite[0] >> (7 - char_offset_bit));
+        dot_map.map[char_y + 1][self.pre_pos.x as usize] &= bit_mask;
+    }
+}
+
 struct Player {
     width: i32,      // 描画サイズの幅
     pos: IVec2,      // 左上位置
@@ -72,7 +140,7 @@ impl Player {
             self.pos.x += 1;
         }
     }
-    // プレイヤーをドットマップに描画
+    // プレイヤーをドットマップに描画(縦方向のバイト境界はまたがない)
     fn array_sprite(&mut self, dot_map: &mut DotMap) {
         // 前回描画した部分を0で消す
         let char_y = (self.pre_pos.y / 8) as usize;
@@ -93,24 +161,37 @@ impl Player {
 async fn main() -> Result<(), Box<dyn Error>> {
     // window::request_new_screen_size(108., 108.);
     let mut map = DotMap::new();
-    // キャラクターのドット絵読み込み
+    // キャラクターのドットデータ読み込み
     let player_data = dot_data::ret_dot_data("player");
-    // ここで実際の描画サイズと色を指定する
+    let bullet_player_data = dot_data::ret_dot_data("bullet_player");
+    if bullet_player_data.width != 1 {
+        panic!("プレイヤーの弾の幅は1以外は不正です。");
+    }
+    // 各構造体初期化
     let mut player = Player {
         width: player_data.width,
         pos: IVec2::new(8, DOT_HEIGHT - 8 * 3),
         pre_pos: IVec2::new(8, DOT_HEIGHT - 8 * 3),
         sprite: player_data.create_dot_map(),
     };
+    let mut bullet = Bullet {
+        pos: IVec2::new(0, 0),
+        pre_pos: IVec2::new(0, 0),
+        live: false,
+        sprite: bullet_player_data.create_dot_map(),
+    };
 
     // プレイヤーの下の横線
     map.draw_holizon_line(DOT_HEIGHT - 1);
 
     loop {
+        // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
         player.update();
+        bullet.update(player.pos, &mut map);
         // プレイヤー
         player.array_sprite(&mut map);
+        bullet.array_sprite(&mut map);
 
         let rgba = map.convert_to_color_bytes();
         let game_texture = rgba2texture(rgba);
