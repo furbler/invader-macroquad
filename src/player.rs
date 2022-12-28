@@ -1,19 +1,23 @@
 use crate::dot_map::DotMap;
 use macroquad::prelude::*;
 pub struct Bullet {
-    pos: IVec2,      // 左上位置
-    pre_pos: IVec2,  // 前回描画時の位置
-    live: bool,      // 弾が存在しているか否か
-    sprite: Vec<u8>, // 左側から縦8ピクセルずつを8bitのベクタで表す
+    pos: IVec2,                        // 左上位置
+    pre_pos: IVec2,                    // 前回描画時の位置
+    live: bool,                        // 弾が存在しているか否か
+    explosion_effect_cnt: Option<i32>, // エフェクト表示の残りカウント
+    sprite: Vec<u8>,                   // 左側から縦8ピクセルずつを8bitのベクタで表す
+    explosion_sprite: Vec<u8>,         // 爆発画像
 }
 
 impl Bullet {
-    pub fn new(sprite: Vec<u8>) -> Self {
+    pub fn new(sprite: Vec<u8>, explosion_sprite: Vec<u8>) -> Self {
         Bullet {
             pos: IVec2::new(0, 0),
             pre_pos: IVec2::new(0, 0),
             live: false,
+            explosion_effect_cnt: None,
             sprite,
+            explosion_sprite,
         }
     }
     // 弾を発射
@@ -34,11 +38,16 @@ impl Bullet {
                 self.pos.y = 0;
                 // 弾を消す
                 self.live = false;
+                self.explosion_effect_cnt = Some(15);
                 self.erase(dot_map);
+                // 自身のx座標が爆発エフェクトの中心になるようずらす
+                self.pos.x = self.pos.x - self.explosion_sprite.len() as i32 / 2;
             }
         } else {
-            // 発射ボタンが押された場合(スペース、Enter)
-            if is_key_down(KeyCode::Space) || is_key_down(KeyCode::Enter) {
+            // 弾が爆発中でなく、かつ発射ボタンが押された場合(スペース、Enter)
+            if self.explosion_effect_cnt == None
+                && (is_key_down(KeyCode::Space) || is_key_down(KeyCode::Enter))
+            {
                 self.fire(player_pos.x + 7, player_pos.y - 8);
             }
         }
@@ -46,9 +55,36 @@ impl Bullet {
 
     // プレイヤーの弾をドットマップに描画(縦方向のバイト境界をまたぐ可能性有り)
     pub fn array_sprite(&mut self, dot_map: &mut DotMap) {
+        if let Some(cnt) = self.explosion_effect_cnt {
+            // 弾の爆発エフェクト表示
+            let char_y = (self.pos.y / 8) as usize;
+            let char_offset_bit = (self.pos.y % 8) as u8;
+            for x in 0..self.explosion_sprite.len() {
+                // 1にしたいbitには1、透過部分には0をおく
+                let bit_mask: u8 = self.explosion_sprite[x] << char_offset_bit;
+                dot_map.map[char_y][self.pos.x as usize + x] |= bit_mask;
+            }
+            if char_offset_bit != 0 {
+                // 下側にはみ出した部分
+                for x in 0..self.explosion_sprite.len() {
+                    // 1にしたいbitには1、透過部分には0をおく
+                    let bit_mask = self.explosion_sprite[x] >> (8 - char_offset_bit);
+                    dot_map.map[char_y + 1][self.pos.x as usize + 1] |= bit_mask;
+                }
+            }
+            self.explosion_effect_cnt = if cnt < 0 {
+                // 爆発エフェクトを消す
+                self.erase_explosion(dot_map);
+                None
+            } else {
+                Some(cnt - 1)
+            };
+        }
+        // 弾がなければ何もしない
         if !self.live {
             return;
         }
+        // 前回の描画を消す
         self.erase(dot_map);
         // 移動後描画する
         let char_y = (self.pos.y / 8) as usize;
@@ -56,9 +92,11 @@ impl Bullet {
         // 1にしたいbitには1、透過部分には0をおく
         let bit_mask: u8 = self.sprite[0] << char_offset_bit;
         dot_map.map[char_y][self.pos.x as usize] |= bit_mask;
-        // 下側にはみ出した部分
-        let bit_mask = self.sprite[0] >> (7 - char_offset_bit);
-        dot_map.map[char_y + 1][self.pos.x as usize] |= bit_mask;
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            let bit_mask = self.sprite[0] >> (8 - char_offset_bit);
+            dot_map.map[char_y + 1][self.pos.x as usize] |= bit_mask;
+        }
 
         self.pre_pos = self.pos;
     }
@@ -71,9 +109,29 @@ impl Bullet {
         //上側
         let bit_mask: u8 = !(self.sprite[0] << char_offset_bit);
         dot_map.map[char_y][self.pre_pos.x as usize] &= bit_mask;
-        // 下側にはみ出した部分
-        let bit_mask = !(self.sprite[0] >> (7 - char_offset_bit));
-        dot_map.map[char_y + 1][self.pre_pos.x as usize] &= bit_mask;
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            let bit_mask = !(self.sprite[0] >> (8 - char_offset_bit));
+            dot_map.map[char_y + 1][self.pre_pos.x as usize] &= bit_mask;
+        }
+    }
+    fn erase_explosion(&self, dot_map: &mut DotMap) {
+        // 弾の爆発エフェクト削除
+        let char_y = (self.pos.y / 8) as usize;
+        let char_offset_bit = (self.pos.y % 8) as u8;
+        for x in 0..self.explosion_sprite.len() {
+            // 0にしたいbitには0、透過部分には1をおく
+            let bit_mask: u8 = !(self.explosion_sprite[x] << char_offset_bit);
+            dot_map.map[char_y][self.pos.x as usize + x] &= bit_mask;
+        }
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            for x in 0..self.explosion_sprite.len() {
+                // 0にしたいbitには0、透過部分には1をおく
+                let bit_mask = !(self.explosion_sprite[x] >> (8 - char_offset_bit));
+                dot_map.map[char_y + 1][self.pos.x as usize + 1] &= bit_mask;
+            }
+        }
     }
 }
 

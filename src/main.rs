@@ -16,7 +16,6 @@ const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
 
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // window::request_new_screen_size(108., 108.);
     let mut map = DotMap::new();
     // キャラクターのドットデータ読み込み
     let player_data = sprite::ret_dot_data("player");
@@ -24,9 +23,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     if bullet_player_data.width != 1 {
         panic!("プレイヤーの弾の幅は1以外は不正です。");
     }
+    let player_bullet_explosion_data = sprite::ret_dot_data("player_bullet_explosion");
     // 各構造体初期化
     let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
-    let mut bullet = Bullet::new(bullet_player_data.create_dot_map());
+    let mut bullet = Bullet::new(
+        bullet_player_data.create_dot_map(),
+        player_bullet_explosion_data.create_dot_map(),
+    );
 
     // プレイヤーの下の横線
     map.draw_holizon_line(DOT_HEIGHT - 1);

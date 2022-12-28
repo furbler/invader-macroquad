@@ -60,6 +60,35 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         dot_map: convert_dot_map(vec!["#", "#", "#", "#", "#", "#", "#", "#"]),
     };
 
+    let player_explosion_1 = DotShape {
+        width: 16,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ # _ _ _ _ _ _ _ _ _ # _ _",
+            "# _ _ _ _ _ # _ _ _ _ # # _ _ #",
+            "_ _ _ # _ _ _ _ # # _ _ _ _ _ _",
+            "_ _ _ _ _ _ # _ _ _ _ _ _ _ # _",
+            "_ # _ _ # _ # # _ _ # # _ _ _ #",
+            "_ _ # _ _ _ _ # # # _ _ _ # _ _",
+            "_ _ _ # # # # # # # # # _ _ _ _",
+            "_ _ # # _ # # # # # # # _ _ # _",
+        ]),
+    };
+    let player_explosion_2 = DotShape {
+        width: 16,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ # _ _ _ _ _ _ _ _ _ _",
+            "_ _ _ _ _ _ _ _ _ _ # _ _ _ _ _",
+            "_ _ _ _ _ # _ # _ # _ _ _ _ _ _",
+            "_ _ # _ _ # _ _ _ _ _ _ _ _ _ _",
+            "_ _ _ _ _ _ # # _ # # _ _ _ _ _",
+            "# _ _ _ # _ # # _ # _ # _ _ _ _",
+            "_ _ # # # # # # # # _ _ # _ _ _",
+            "_ # # # # # # # # # # _ # _ # _",
+        ]),
+    };
+
     let crab_down = DotShape {
         width: 11,
         height: 8,
@@ -147,6 +176,89 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         ]),
     };
 
+    let alien_explosion = DotShape {
+        width: 13,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _ _ _ _ _ _",
+            "_ # _ _ # _ _ _ # _ _ # _",
+            "_ _ # _ _ # _ # _ _ # _ _",
+            "_ _ _ # _ _ _ _ _ # _ _ _",
+            "# # _ _ _ _ _ _ _ _ _ # #",
+            "_ _ _ # _ _ _ _ _ # _ _ _",
+            "_ _ # _ _ # _ # _ _ # _ _",
+            "_ # _ _ # _ _ _ # _ _ # _",
+        ]),
+    };
+
+    let player_bullet_explosion = DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "# _ _ _ # _ _ #",
+            "_ _ # _ _ _ # _",
+            "_ # # # # # # _",
+            "# # # # # # # #",
+            "# # # # # # # #",
+            "_ # # # # # # _",
+            "_ _ # _ _ # _ _",
+            "# _ _ # _ _ _ #",
+        ]),
+    };
+
+    let torchika = DotShape {
+        width: 20,
+        height: 16,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _",
+            "_ _ _ _ # # # # # # # # # # # # _ _ _ _",
+            "_ _ _ # # # # # # # # # # # # # # _ _ _",
+            "_ _ # # # # # # # # # # # # # # # # _ _",
+            "_ # # # # # # # # # # # # # # # # # # _",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # # # # # # # # # # # # # #",
+            "# # # # # # # _ _ _ _ _ _ # # # # # # #",
+            "# # # # # # _ _ _ _ _ _ _ _ # # # # # #",
+            "# # # # # _ _ _ _ _ _ _ _ _ _ # # # # #",
+            "# # # # # _ _ _ _ _ _ _ _ _ _ # # # # #",
+        ]),
+    };
+
+    let ufo = DotShape {
+        width: 16,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _",
+            "_ _ _ _ _ # # # # # # _ _ _ _ _",
+            "_ _ _ # # # # # # # # # # _ _ _",
+            "_ _ # # # # # # # # # # # # _ _",
+            "_ # # _ # # _ # # _ # # _ # # _",
+            "# # # # # # # # # # # # # # # #",
+            "_ _ # # # _ _ # # _ _ # # # _ _",
+            "_ _ _ # _ _ _ _ _ _ _ _ # _ _ _",
+        ]),
+    };
+
+    let ufo_explosion = DotShape {
+        width: 21,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ # _ _ # _ # _ _ _ _ _ _ # _ # # _ # _",
+            "_ _ _ # _ _ _ _ _ _ _ _ # # _ _ _ _ # _ _",
+            "# _ # _ _ _ # # # # _ _ _ # # _ _ _ _ _ _",
+            "_ _ _ _ _ # # # # # # # _ _ # # # _ _ # _",
+            "_ _ _ _ # # # _ # _ # _ # _ _ # # # _ _ #",
+            "_ _ # _ _ _ # # # # # _ _ _ # # _ _ _ _ _",
+            "# _ _ _ _ _ _ # _ # _ _ _ # # _ _ _ # _ _",
+            "_ _ # _ _ _ # _ _ _ # _ _ _ _ # _ _ _ _ _",
+        ]),
+    };
+
     match name {
         "player" => player,
         "bullet_player" => bullet_player,
@@ -156,6 +268,13 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         "octopus_close" => octopus_close,
         "squid_open" => squid_open,
         "squid_close" => squid_close,
+        "alien_explosion" => alien_explosion,
+        "player_bullet_explosion" => player_bullet_explosion,
+        "torchika" => torchika,
+        "ufo" => ufo,
+        "ufo_explosion" => ufo_explosion,
+        "player_explosion_1" => player_explosion_1,
+        "player_explosion_2" => player_explosion_2,
         _ => panic!(
             "{}のドットマップ取得に失敗しました。プログラムを終了します。",
             name
