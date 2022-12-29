@@ -2,10 +2,12 @@ use dot_map::DotMap;
 use macroquad::prelude::*;
 use player::{Bullet, Player};
 use std::error::Error;
+use ufo::Ufo;
 
 mod dot_map;
 mod player;
 mod sprite;
+mod ufo;
 
 // 1文字8ピクセル分がいくつ入るか
 const CHAR_WIDTH: i32 = 28;
@@ -24,12 +26,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         panic!("プレイヤーの弾の幅は1以外は不正です。");
     }
     let player_bullet_explosion_data = sprite::ret_dot_data("player_bullet_explosion");
+    let ufo_data = sprite::ret_dot_data("ufo");
     // 各構造体初期化
     let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
     let mut bullet = Bullet::new(
         bullet_player_data.create_dot_map(),
         player_bullet_explosion_data.create_dot_map(),
     );
+    let mut ufo = Ufo::new(DOT_WIDTH, ufo_data.create_dot_map());
 
     // プレイヤーの下の横線
     map.draw_holizon_line(DOT_HEIGHT - 1);
@@ -39,9 +43,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         clear_background(BLACK);
         player.update();
         bullet.update(player.pos, &mut map);
+        ufo.update(&mut map);
         // プレイヤー
         player.array_sprite(&mut map);
         bullet.array_sprite(&mut map);
+        ufo.array_sprite(&mut map);
 
         let game_texture = map.dot_map2texture();
         draw_texture_ex(
@@ -54,7 +60,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             },
         );
-
         next_frame().await
     }
 }
