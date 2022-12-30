@@ -5,34 +5,53 @@ pub struct DotShape {
 }
 
 impl DotShape {
-    // 真偽値で表されたドットマップを時計回りに90度回転させたVec<u8>に変換
+    // 真偽値で表されたスプライトを時計回りに90度回転させたVec<u8>に変換
     pub fn create_dot_map(&self) -> Vec<u8> {
         // 指定されたサイズと実際のドットマップのサイズが一致しているか確認
         if self.height as usize != self.dot_map.len() {
-            panic!("指定されたドットマップの高さが実際のデータと異なります。");
+            panic!("指定されたスプライトの高さが実際のデータと異なります。");
         }
         if self.width as usize != self.dot_map[0].len() {
-            panic!("指定されたドットマップの幅が実際のデータと異なります。");
+            panic!("指定されたスプライトの幅が実際のデータと異なります。");
         }
         // ドットマップの幅が異なる行が無いか確認
         let map_width = self.dot_map[0].len();
         for l in &self.dot_map {
             if l.len() != map_width {
-                panic!("ドットマップの形が不正です。");
+                panic!("スプライトの形が不正です。");
             }
         }
         // 1列8ピクセルを8bitで表す
-        if self.height != 8 {
-            panic!("高さは8でなければなりません。");
-        }
         // 元のboolの二次元配列に対し時計回りに90度回転させる
-        let mut bytes: Vec<u8> = vec![0; self.width as usize];
-        for (i_row, line) in self.dot_map.iter().enumerate() {
-            for (i_col, dot) in line.iter().enumerate() {
-                if *dot {
-                    bytes[i_col] = bytes[i_col] | (1 << i_row);
+        let mut bytes: Vec<u8>;
+        if self.height == 8 {
+            bytes = vec![0; self.width as usize];
+            for (y, line) in self.dot_map.iter().enumerate() {
+                for (x, dot) in line.iter().enumerate() {
+                    if *dot {
+                        bytes[x] |= 1 << y;
+                    }
                 }
             }
+        } else if self.height == 16 {
+            // トーチカの場合
+            bytes = vec![0; (self.width * 2) as usize];
+            for y in 0..=7 {
+                for x in 0..self.width as usize {
+                    if self.dot_map[y][x] {
+                        bytes[x] |= 1 << y;
+                    }
+                }
+            }
+            for y in 8..16 {
+                for x in 0..self.width as usize {
+                    if self.dot_map[y][x] {
+                        bytes[x + self.width as usize] |= 1 << (y - 8);
+                    }
+                }
+            }
+        } else {
+            panic!("高さは8または16でなければなりません。");
         }
         bytes
     }
@@ -206,7 +225,7 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         ]),
     };
 
-    let torchika = DotShape {
+    let shield = DotShape {
         width: 20,
         height: 16,
         dot_map: convert_dot_map(vec![
@@ -270,7 +289,7 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         "squid_close" => squid_close,
         "alien_explosion" => alien_explosion,
         "player_bullet_explosion" => player_bullet_explosion,
-        "torchika" => torchika,
+        "shield" => shield,
         "ufo" => ufo,
         "ufo_explosion" => ufo_explosion,
         "player_explosion_1" => player_explosion_1,

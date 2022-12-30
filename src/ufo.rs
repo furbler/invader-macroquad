@@ -41,8 +41,8 @@ impl Ufo {
     }
     pub fn update(&mut self, dot_map: &mut DotMap) {
         // 画面の反対側まで到達した場合
-        if (self.move_dir < 0 && self.pos.x < 2)
-            || (0 < self.move_dir && self.canvas_dot_width - 3 <= self.pos.x + self.width)
+        if (self.move_dir < 0 && self.pos.x < 8)
+            || (0 < self.move_dir && self.canvas_dot_width - 8 <= self.pos.x + self.width)
         {
             self.erase(dot_map);
             return;
@@ -56,9 +56,9 @@ impl Ufo {
                 // 出現
                 self.live = true;
                 if self.move_dir < 0 {
-                    self.pos.x = self.canvas_dot_width - self.width;
+                    self.pos.x = self.canvas_dot_width - self.width - 8;
                 } else {
-                    self.pos.x = 0;
+                    self.pos.x = 8;
                 }
             }
         }

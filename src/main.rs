@@ -27,6 +27,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
     let player_bullet_explosion_data = sprite::ret_dot_data("player_bullet_explosion");
     let ufo_data = sprite::ret_dot_data("ufo");
+    let shield_data = sprite::ret_dot_data("shield");
     // 各構造体初期化
     let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
     let mut bullet = Bullet::new(
@@ -34,10 +35,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         player_bullet_explosion_data.create_dot_map(),
     );
     let mut ufo = Ufo::new(DOT_WIDTH, ufo_data.create_dot_map());
+    let shield = shield_data.create_dot_map();
 
     // プレイヤーの下の横線
     map.draw_holizon_line(DOT_HEIGHT - 1);
-
+    for i in 0..4 {
+        let gap = (shield_data.width as usize + 23) * i;
+        for dx in 0..shield_data.width as usize {
+            map.map[20][gap + 33 + dx] = shield[dx];
+        }
+        for dx in 0..shield_data.width as usize {
+            map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
+        }
+    }
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
