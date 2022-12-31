@@ -6,6 +6,7 @@ pub struct Bullet {
     live: bool,                  // 弾が存在しているか否か
     explosion_effect_show: bool, // 爆発エフェクトを表示するならば真
     ban_fire_cnt: Option<i32>,   // 射撃禁止状態の残りカウント
+    pub fire_cnt: i32,           // ステージ開始からの累計射撃数
     sprite: Vec<u8>,             // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: Vec<u8>,   // 爆発画像
 }
@@ -17,6 +18,7 @@ impl Bullet {
             live: false,
             explosion_effect_show: false,
             ban_fire_cnt: None,
+            fire_cnt: 0,
             sprite,
             explosion_sprite,
         }
@@ -27,6 +29,7 @@ impl Bullet {
         if !self.live {
             self.pos = IVec2::new(x, y);
             self.live = true;
+            self.fire_cnt += 1;
         }
     }
     pub fn update(&mut self, player_pos: IVec2, ufo: &mut Ufo, dot_map: &mut DotMap) {

@@ -87,7 +87,7 @@ impl Ufo {
         // 爆発エフェクト描画
         self.explosion.create_effect(dot_map, self.pos);
     }
-    pub fn update(&mut self, dot_map: &mut DotMap) {
+    pub fn update(&mut self, dot_map: &mut DotMap, fire_cnt: i32) {
         self.explosion.update(dot_map);
         // 画面の反対側まで到達した場合
         if (self.move_dir < 0 && self.pos.x < 8)
@@ -96,18 +96,22 @@ impl Ufo {
             self.erase(dot_map);
             return;
         }
-        // 出現状態
+        // 移動中
         if self.live {
             self.pos.x += self.move_dir;
         } else {
             // 消滅してから一定時間経過したら
             if time::get_time() - self.lapse_time > 5. {
-                // 出現
+                // UFOが出現する瞬間
                 self.live = true;
-                if self.move_dir < 0 {
+                // プレイヤーの発射数が偶数であれば右から左へ動く
+                if fire_cnt % 2 == 0 {
                     self.pos.x = self.canvas_dot_width - self.width - 8;
+                    self.move_dir = -1;
                 } else {
+                    // 奇数ならば左から右へ動く
                     self.pos.x = 8;
+                    self.move_dir = 1;
                 }
             }
         }

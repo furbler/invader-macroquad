@@ -57,8 +57,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
         player.update();
-        ufo.update(&mut map);
         bullet.update(player.pos, &mut ufo, &mut map);
+        ufo.update(&mut map, bullet.fire_cnt);
         // プレイヤー
         player.array_sprite(&mut map);
         bullet.array_sprite(&mut map);
