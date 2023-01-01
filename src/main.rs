@@ -1,4 +1,4 @@
-use alien::AlienManage;
+use alien::Alien;
 use dot_map::DotMap;
 use macroquad::prelude::*;
 use player::{Bullet, Player};
@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     let shield = shield_data.create_dot_map();
 
-    let mut alien_manage = AlienManage::new(
+    let mut alien_manage = Alien::new(
         octopus_open_data.create_dot_map(),
         octopus_close_data.create_dot_map(),
         crab_banzai_data.create_dot_map(),
@@ -60,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         squid_close_data.create_dot_map(),
     );
 
-    alien_manage.init_all_aliens();
+    alien_manage.init_alien();
 
     // プレイヤーの下の横線
     map.draw_holizon_line(DOT_HEIGHT - 1);
@@ -76,13 +76,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
+        // 更新処理
         player.update();
         bullet.update(player.pos, &mut ufo, &mut map);
         ufo.update(&mut map, bullet.fire_cnt);
+        // ドットマップに描画
+        alien_manage.update(&mut map);
         player.array_sprite(&mut map);
         bullet.array_sprite(&mut map);
         ufo.array_sprite(&mut map);
-        alien_manage.array_sprite(&mut map);
 
         let game_texture = map.dot_map2texture();
         draw_texture_ex(
