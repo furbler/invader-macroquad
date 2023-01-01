@@ -1,9 +1,11 @@
+use alien::AlienManage;
 use dot_map::DotMap;
 use macroquad::prelude::*;
 use player::{Bullet, Player};
 use std::error::Error;
 use ufo::Ufo;
 
+mod alien;
 mod dot_map;
 mod player;
 mod sprite;
@@ -29,6 +31,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let ufo_data = sprite::ret_dot_data("ufo");
     let ufo_explosion_data = sprite::ret_dot_data("ufo_explosion");
     let shield_data = sprite::ret_dot_data("shield");
+    let octopus_open_data = sprite::ret_dot_data("octopus_open");
+    let octopus_close_data = sprite::ret_dot_data("octopus_close");
+    let crab_banzai_data = sprite::ret_dot_data("crab_banzai");
+    let crab_down_data = sprite::ret_dot_data("crab_down");
+    let squid_open_data = sprite::ret_dot_data("squid_open");
+    let squid_close_data = sprite::ret_dot_data("squid_close");
+
     // 各構造体初期化
     let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
     let mut bullet = Bullet::new(
@@ -41,6 +50,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ufo_explosion_data.create_dot_map(),
     );
     let shield = shield_data.create_dot_map();
+
+    let mut alien_manage = AlienManage::new(
+        octopus_open_data.create_dot_map(),
+        octopus_close_data.create_dot_map(),
+        crab_banzai_data.create_dot_map(),
+        crab_down_data.create_dot_map(),
+        squid_open_data.create_dot_map(),
+        squid_close_data.create_dot_map(),
+    );
+
+    alien_manage.init_all_aliens();
 
     // プレイヤーの下の横線
     map.draw_holizon_line(DOT_HEIGHT - 1);
@@ -59,10 +79,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         player.update();
         bullet.update(player.pos, &mut ufo, &mut map);
         ufo.update(&mut map, bullet.fire_cnt);
-        // プレイヤー
         player.array_sprite(&mut map);
         bullet.array_sprite(&mut map);
         ufo.array_sprite(&mut map);
+        alien_manage.array_sprite(&mut map);
 
         let game_texture = map.dot_map2texture();
         draw_texture_ex(
