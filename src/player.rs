@@ -2,6 +2,9 @@ use crate::alien::Alien;
 use crate::dot_map::DotMap;
 use crate::ufo::Ufo;
 use macroquad::prelude::*;
+// プレイヤーの弾のスピード
+const PLAYER_BULLET_DELTA: i32 = 4;
+
 pub struct Bullet {
     pos: IVec2,                  // 左上位置
     live: bool,                  // 弾が存在しているか否か
@@ -45,7 +48,7 @@ impl Bullet {
             // 前回の弾を消す
             self.erase(dot_map);
             // 弾の移動
-            self.pos.y -= 4;
+            self.pos.y -= PLAYER_BULLET_DELTA;
             // 弾が画面上部に行ったら
             if self.pos.y < 0 {
                 self.pos.y = 0;
@@ -56,20 +59,15 @@ impl Bullet {
                 // 自身のx座標が爆発エフェクトの中心になるようずらす
                 self.pos.x = self.pos.x - self.explosion_sprite.len() as i32 / 2;
             } else {
-                // 移動後の弾の左右のドットに何か物体が存在したら
-                let collision_pos_y = self.pos.y as usize + 2;
-                let collision_byte_left = dot_map.map[collision_pos_y / 8][self.pos.x as usize - 1];
-                let collision_byte_right =
-                    dot_map.map[collision_pos_y / 8][self.pos.x as usize + 1];
-                let bit_mask: u8 = 1 << (collision_pos_y % 8);
-                if (collision_byte_left & bit_mask) != 0 || (collision_byte_right & bit_mask) != 0 {
+                // 移動後の弾の部分に何か物体が存在したら
+                if self.collision(dot_map) {
                     // 何かに衝突したので弾を消す
                     self.live = false;
                     self.ban_fire_cnt = Some(15);
                     // 爆発エフェクトを表示する
                     self.explosion_effect_show = true;
                     // 衝突したのがUFOだった場合
-                    if collision_pos_y / 8 < 2 {
+                    if self.pos.y / 8 < 2 {
                         // UFOの爆発エフェクト表示中でなければ
                         if ufo.explosion.show_cnt == None {
                             // UFOの撃破
@@ -87,7 +85,9 @@ impl Bullet {
                         }
                     }
                     // 自身のx座標が爆発エフェクトの中心になるようずらす
-                    self.pos.x = self.pos.x - self.explosion_sprite.len() as i32 / 2;
+                    self.pos.x = self.pos.x - 5;
+                    // 少し上にずらす
+                    self.pos.y -= 2;
                 }
             }
         } else {
@@ -147,6 +147,22 @@ impl Bullet {
             dot_map.map[char_y + 1][self.pos.x as usize] |= bit_mask;
         }
     }
+    // 弾の当たり判定
+    fn collision(&self, dot_map: &DotMap) -> bool {
+        let char_y = (self.pos.y / 8) as usize;
+        let offset_bit = (self.pos.y % 8) as u8;
+        // 移動した弾の部分のビットマスクを作る
+        let bit_mask = self.sprite[0] & !(0b1111_1111 << PLAYER_BULLET_DELTA);
+        // ビットがバイトの境界をまたぐときの上下それぞれの判定
+        let high = dot_map.map[char_y][self.pos.x as usize] & (bit_mask << offset_bit) != 0;
+        let low = if offset_bit != 0 {
+            dot_map.map[char_y + 1][self.pos.x as usize] & (bit_mask >> (8 - offset_bit)) != 0
+        } else {
+            false
+        };
+        high || low
+    }
+
     // 描画された弾を透過ありで消す
     fn erase(&self, dot_map: &mut DotMap) {
         // 現在位置の弾を0で消す
