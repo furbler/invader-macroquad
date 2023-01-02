@@ -1,3 +1,4 @@
+use crate::alien::Alien;
 use crate::dot_map::DotMap;
 use crate::ufo::Ufo;
 use macroquad::prelude::*;
@@ -32,13 +33,19 @@ impl Bullet {
             self.fire_cnt += 1;
         }
     }
-    pub fn update(&mut self, player_pos: IVec2, ufo: &mut Ufo, dot_map: &mut DotMap) {
+    pub fn update(
+        &mut self,
+        dot_map: &mut DotMap,
+        player_pos: IVec2,
+        ufo: &mut Ufo,
+        alien: &mut Alien,
+    ) {
         // 弾が存在していたら
         if self.live {
             // 前回の弾を消す
             self.erase(dot_map);
             // 弾の移動
-            self.pos.y -= 3;
+            self.pos.y -= 4;
             // 弾が画面上部に行ったら
             if self.pos.y < 0 {
                 self.pos.y = 0;
@@ -56,15 +63,13 @@ impl Bullet {
                     dot_map.map[collision_pos_y / 8][self.pos.x as usize + 1];
                 let bit_mask: u8 = 1 << (collision_pos_y % 8);
                 if (collision_byte_left & bit_mask) != 0 || (collision_byte_right & bit_mask) != 0 {
-                    // 何かに衝突したので弾を爆発させる
+                    // 何かに衝突したので弾を消す
                     self.live = false;
                     self.ban_fire_cnt = Some(15);
-                    // 衝突したのがUFO(の高さ)より下だった場合のみ
-                    if 2 < collision_pos_y / 8 {
-                        // 爆発エフェクトを表示する
-                        self.explosion_effect_show = true;
-                    } else {
-                        // 衝突したのがUFOだった場合
+                    // 爆発エフェクトを表示する
+                    self.explosion_effect_show = true;
+                    // 衝突したのがUFOだった場合
+                    if collision_pos_y / 8 < 2 {
                         // UFOの爆発エフェクト表示中でなければ
                         if ufo.explosion.show_cnt == None {
                             // UFOの撃破
@@ -72,6 +77,14 @@ impl Bullet {
                         }
                         // 爆発エフェクトは表示しない
                         self.explosion_effect_show = false;
+                    } else if self.pos.y <= alien.ref_alien_pos.y + 6 {
+                        // 衝突したのがUFO(の高さ)より下かつ、リファレンスエイリアンより上だった場合のみ
+                        // エイリアンに当たっていた場合
+                        if let Some(i) = alien.ret_alien_index(self.pos) {
+                            alien.remove(dot_map, i);
+                            // 爆発エフェクトは表示しない
+                            self.explosion_effect_show = false;
+                        }
                     }
                     // 自身のx座標が爆発エフェクトの中心になるようずらす
                     self.pos.x = self.pos.x - self.explosion_sprite.len() as i32 / 2;
