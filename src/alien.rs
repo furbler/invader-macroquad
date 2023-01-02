@@ -1,6 +1,47 @@
 use crate::dot_map::DotMap;
 use macroquad::prelude::*;
 
+struct Explosion {
+    pos: IVec2,
+    // 爆発エフェクトのスプライト
+    sprite: Vec<u8>,
+    //エフェクト表示中はSome(カウント)
+    effect_cnt: Option<i32>,
+}
+
+impl Explosion {
+    // エフェクトを設置する
+    fn create_effect(&mut self, dot_map: &mut DotMap, pos: IVec2) {
+        self.pos = pos;
+        self.effect_cnt = Some(15);
+
+        let char_y = (self.pos.y / 8) as usize;
+        for dx in 0..self.sprite.len() {
+            dot_map.map[char_y][self.pos.x as usize + dx] = self.sprite[dx];
+        }
+    }
+    fn remove(&mut self, dot_map: &mut DotMap) {
+        self.effect_cnt = None;
+        let char_y = (self.pos.y / 8) as usize;
+        for dx in 0..self.sprite.len() {
+            dot_map.map[char_y][self.pos.x as usize + dx] = 0;
+        }
+    }
+    fn update(&mut self, dot_map: &mut DotMap) {
+        // エフェクトが表示されていたら
+        if let Some(cnt) = self.effect_cnt {
+            // カウントが終わったら
+            if cnt < 0 {
+                // エフェクト削除
+                self.remove(dot_map);
+                self.effect_cnt = None;
+            } else {
+                self.effect_cnt = Some(cnt - 1);
+            }
+        }
+    }
+}
+
 pub struct Alien {
     // リファレンスエイリアンの座標
     pub ref_alien_pos: IVec2,
@@ -10,6 +51,7 @@ pub struct Alien {
     show_sprite: bool,
     // スプライトのリスト
     sprite_list: Vec<Vec<u8>>,
+    explosion: Explosion,
     // 描画処理対象のインデックス番号
     i_cursor_alien: usize,
     // エイリアンの移動量
@@ -29,6 +71,8 @@ impl Alien {
         // 上1列のエイリアンのスプライト
         high_sprite0: Vec<u8>,
         high_sprite1: Vec<u8>,
+        // 爆発エフェクトのスプライト
+        explosion_sprite: Vec<u8>,
     ) -> Self {
         let mut sprite_list = Vec::new();
         sprite_list.push(low_sprite0);
@@ -42,6 +86,11 @@ impl Alien {
             pre_ref_alien_pos: IVec2::new(0, 0),
             show_sprite: true,
             sprite_list,
+            explosion: Explosion {
+                pos: IVec2::new(0, 0),
+                sprite: explosion_sprite,
+                effect_cnt: None,
+            },
             i_cursor_alien: 0,
             move_delta: IVec2::new(2, 0),
             live: vec![true; 55],
@@ -55,6 +104,7 @@ impl Alien {
     }
     pub fn update(&mut self, dot_map: &mut DotMap) {
         self.array_sprite(dot_map);
+        self.explosion.update(dot_map);
 
         // 処理対象カーソルを進める
         self.i_cursor_alien += 1;
@@ -131,21 +181,25 @@ impl Alien {
     pub fn remove(&mut self, dot_map: &mut DotMap, i: usize) {
         self.live[i] = false;
         let width = self.sprite_list[2 * Alien::ret_alien_type(i)].len();
+        let alien_pos;
+        // カーソルの前か後かでエイリアンの位置が変わる
         if self.i_cursor_alien < i {
-            // 移動前
-            let alien_pos = Alien::ret_alien_pos(i, self.pre_ref_alien_pos);
+            // カーソルより後ろ
+            alien_pos = Alien::ret_alien_pos(i, self.pre_ref_alien_pos);
             let char_y = (alien_pos.y / 8) as usize;
             for dx in 0..width {
                 dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
             }
         } else {
-            // 移動後
-            let alien_pos = Alien::ret_alien_pos(i, self.ref_alien_pos);
+            // カーソルより前
+            alien_pos = Alien::ret_alien_pos(i, self.ref_alien_pos);
             let char_y = (alien_pos.y / 8) as usize;
             for dx in 0..width {
                 dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
             }
         }
+        // 爆発エフェクト描画
+        self.explosion.create_effect(dot_map, alien_pos);
     }
     // プレイヤーの弾の座標を引数として、エイリアンに当たった場合はそのエイリアンのインデックス番号を返す
     pub fn ret_alien_index(&self, mut pos: IVec2) -> Option<usize> {

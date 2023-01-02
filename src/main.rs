@@ -37,6 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let crab_down_data = sprite::ret_dot_data("crab_down");
     let squid_open_data = sprite::ret_dot_data("squid_open");
     let squid_close_data = sprite::ret_dot_data("squid_close");
+    let alien_explosion_data = sprite::ret_dot_data("alien_explosion");
 
     // 各構造体初期化
     let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
@@ -58,6 +59,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         crab_down_data.create_dot_map(),
         squid_open_data.create_dot_map(),
         squid_close_data.create_dot_map(),
+        alien_explosion_data.create_dot_map(),
     );
 
     alien.init_alien();
