@@ -78,7 +78,7 @@ impl Bullet {
                     } else if self.pos.y <= alien.ref_alien_pos.y + 6 {
                         // 衝突したのがUFO(の高さ)より下かつ、リファレンスエイリアンより上だった場合のみ
                         // エイリアンに当たっていた場合
-                        if let Some(i) = alien.ret_alien_index(self.pos) {
+                        if let Some(i) = alien.pos2index(self.pos) {
                             alien.remove(dot_map, i);
                             // 爆発エフェクトは表示しない
                             self.explosion_effect_show = false;
