@@ -15,15 +15,18 @@ enum BulletType {
 struct Bullet {
     pos: IVec2,
     btype: BulletType,
-    live: bool,
+    live: bool,      // 弾が画面上にある場合は真
+    flying_cnt: i32, // 弾が発射されてからの経過カウント
     // 種類によらず、サイズは3x8ドット
     sprite: [u8; 3],
 }
 
 impl Bullet {
-    fn fire(&mut self, pos: IVec2) {
-        self.pos = pos;
+    fn fire(&mut self, alien_pos: IVec2) {
+        // 発射するエイリアンより少し下から発射する
+        self.pos = IVec2::new(alien_pos.x + 5, alien_pos.y + 16);
         self.live = true;
+        self.flying_cnt = 0;
     }
     fn update_squiggly_sprite(&mut self, pos_y: i32) {
         // 0クリア
@@ -69,12 +72,14 @@ impl Bullet {
         self.sprite[2] |= 1 << (7 - i);
     }
     fn update(&mut self, dot_map: &mut DotMap) {
-        if !self.live {
+        if self.live {
+            self.flying_cnt += 1;
+        } else {
             return;
         }
         // 前回の描画を消す
         self.erase(dot_map);
-        self.pos.y += 1;
+        self.pos.y += 2;
         if DOT_HEIGHT - 1 < self.pos.y + 7 {
             // 赤線に着弾
             // はみださないようにする
@@ -129,46 +134,120 @@ impl Bullet {
     }
 }
 
-struct BulletManage {
+struct TableManage {
+    // 次に利用すべき値のインデックス番号
+    i: usize,
+    table: Vec<usize>,
+}
+impl TableManage {
+    // 前回利用した表の値の次の値を返す
+    fn take(&mut self) -> usize {
+        let value = self.table[self.i];
+        self.i = if self.table.len() <= self.i + 1 {
+            0
+        } else {
+            self.i + 1
+        };
+        value
+    }
+}
+
+pub struct BulletManage {
     // ジグザグ型
-    squiggly: Bullet,
+    // bulets[0]: squiggly
     // 十字架型(ピストン型)
-    plunger: Bullet,
+    // bulets[1]: plunger
     // ねじ型
-    rolling: Bullet,
+    // bulets[2]: rolling
+    bullets: Vec<Bullet>,
+    // 発射列表
+    plunger_shot_column_table: TableManage,
+    squiggly_shot_column_table: TableManage,
+    // 弾を発射して、その弾が消える前に別の弾の発射許可を出す時間間隔の最低値
+    reload_cnt: i32,
 }
 impl BulletManage {
-    fn new() -> Self {
+    pub fn new() -> Self {
+        let mut bullets = Vec::new();
+        bullets.push(Bullet {
+            btype: BulletType::Rolling,
+            pos: IVec2::new(0, 0),
+            live: false,
+            flying_cnt: 0,
+            sprite: [0; 3],
+        });
+        bullets.push(Bullet {
+            btype: BulletType::Plunger,
+            pos: IVec2::new(0, 0),
+            live: false,
+            flying_cnt: 0,
+            sprite: [0; 3],
+        });
+
+        bullets.push(Bullet {
+            btype: BulletType::Squiggly,
+            pos: IVec2::new(0, 0),
+            live: false,
+            flying_cnt: 0,
+            sprite: [0; 3],
+        });
         BulletManage {
-            squiggly: Bullet {
-                btype: BulletType::Squiggly,
-                pos: IVec2::new(0, 0),
-                live: false,
-                sprite: [0; 3],
+            bullets,
+            plunger_shot_column_table: TableManage {
+                i: 0,
+                table: vec![1, 7, 1, 1, 1, 4, 11, 1, 6, 3, 1, 1, 11, 9, 2, 8],
             },
-            plunger: Bullet {
-                btype: BulletType::Plunger,
-                pos: IVec2::new(0, 0),
-                live: false,
-                sprite: [0; 3],
+            squiggly_shot_column_table: TableManage {
+                i: 0,
+                table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10],
             },
-            rolling: Bullet {
-                btype: BulletType::Rolling,
-                pos: IVec2::new(0, 0),
-                live: false,
-                sprite: [0; 3],
-            },
+            reload_cnt: 48, // 0x30
         }
     }
-    fn update(&mut self, dot_map: &mut DotMap) {
-        self.plunger.update(dot_map);
-        self.squiggly.update(dot_map);
-        self.rolling.update(dot_map);
+    pub fn update(&mut self, dot_map: &mut DotMap, player_pos_x: i32, alien: &Alien) {
+        let seed = (player_pos_x + alien.ref_alien_pos.x).abs() as usize % 3;
+        // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
+        // rolling shot(自機を狙う弾)
+        if seed == 0 && !self.bullets[seed].live {
+            if (!self.bullets[1].live || self.reload_cnt < self.bullets[1].flying_cnt)
+                && (!self.bullets[2].live || self.reload_cnt < self.bullets[2].flying_cnt)
+            {
+                // プレイヤーに近い列のエイリアンに生き残りがいたら
+                if let Some(i) = alien.alien_index_near_x(player_pos_x) {
+                    // そのエイリアンからrolling shot(自機を狙う)発射
+                    self.bullets[seed].fire(alien.index2pos(i));
+                }
+            }
+        } else if seed == 1 && !self.bullets[seed].live {
+            // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
+            // plunger shot(十字架、ピストン弾)
+            if (!self.bullets[0].live || self.reload_cnt < self.bullets[0].flying_cnt)
+                && (!self.bullets[2].live || self.reload_cnt < self.bullets[2].flying_cnt)
+            {
+                if let Some(i) = alien.column2index(self.plunger_shot_column_table.take()) {
+                    // plunger shot発射
+                    self.bullets[seed].fire(alien.index2pos(i));
+                }
+            }
+        } else if !self.bullets[seed].live {
+            // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
+            if (!self.bullets[0].live || self.reload_cnt < self.bullets[0].flying_cnt)
+                && (!self.bullets[1].live || self.reload_cnt < self.bullets[1].flying_cnt)
+            {
+                if let Some(i) = alien.column2index(self.squiggly_shot_column_table.take()) {
+                    // squiggly shot発射
+                    self.bullets[seed].fire(alien.index2pos(i));
+                }
+            }
+        }
+        for i in 0..self.bullets.len() {
+            self.bullets[i].update(dot_map);
+        }
     }
-    fn array_sprite(&self, dot_map: &mut DotMap) {
-        self.plunger.array_sprite(dot_map);
-        self.squiggly.array_sprite(dot_map);
-        self.rolling.array_sprite(dot_map);
+    pub fn array_sprite(&self, dot_map: &mut DotMap) {
+        for i in 0..self.bullets.len() {
+            self.bullets[i].array_sprite(dot_map);
+        }
     }
 }
 
@@ -229,8 +308,6 @@ pub struct Alien {
     move_delta: IVec2,
     // エイリアンの生存状態
     live: Vec<bool>,
-    // 弾
-    bullets: BulletManage,
 }
 
 impl Alien {
@@ -267,7 +344,6 @@ impl Alien {
             i_cursor_alien: 0,
             move_delta: IVec2::new(2, 0),
             live: vec![true; 55],
-            bullets: BulletManage::new(),
         }
     }
     // エイリアンを初期化する
@@ -279,8 +355,6 @@ impl Alien {
     pub fn update(&mut self, dot_map: &mut DotMap) {
         self.array_sprite(dot_map);
         self.explosion.update(dot_map);
-        self.bullets.update(dot_map);
-        self.bullets.array_sprite(dot_map);
 
         // 処理対象カーソルを進める
         self.i_cursor_alien += 1;
@@ -318,30 +392,14 @@ impl Alien {
             // リファレンスエイリアンを移動させる
             self.ref_alien_pos += self.move_delta;
         }
-        if !self.bullets.plunger.live {
-            self.bullets.plunger.fire(IVec2::new(
-                self.ref_alien_pos.x + 5,
-                self.ref_alien_pos.y + 16,
-            ));
-        }
-        if !self.bullets.squiggly.live {
-            let pos = Alien::index2pos(1, self.ref_alien_pos);
-            self.bullets
-                .squiggly
-                .fire(IVec2::new(pos.x + 5, pos.y + 16));
-        }
-        if !self.bullets.rolling.live {
-            let pos = Alien::index2pos(2, self.ref_alien_pos);
-            self.bullets.rolling.fire(IVec2::new(pos.x + 5, pos.y + 16));
-        }
     }
     fn array_sprite(&mut self, dot_map: &mut DotMap) {
-        let i = self.i_cursor_alien;
-        // エイリアンのインデックス番号とリファレンスエイリアンの座標から該当エイリアンの座標を計算
-        let pre_alien_pos = Alien::index2pos(i, self.pre_ref_alien_pos);
+        // エイリアンのインデックス番号から該当エイリアンの座標を計算
+        let pre_alien_pos = self.index2pre_pos(self.i_cursor_alien);
         // 2種類のエイリアンのスプライトのどちらを描画するか
         let sprite_type: usize = if self.show_sprite { 0 } else { 1 };
-        let sprite = &self.sprite_list[2 * Alien::ret_alien_type(i) + sprite_type];
+        let sprite =
+            &self.sprite_list[2 * Alien::ret_alien_type(self.i_cursor_alien) + sprite_type];
         // 描画するエイリアンの横幅
         let width = sprite.len();
 
@@ -352,7 +410,7 @@ impl Alien {
             dot_map.map[char_y][pre_alien_pos.x as usize + dx] = 0;
         }
         // 移動後を描画する
-        let alien_pos = Alien::index2pos(i, self.ref_alien_pos);
+        let alien_pos = self.index2pos(self.i_cursor_alien);
         let char_y = (alien_pos.y / 8) as usize;
         for dx in 0..width {
             dot_map.map[char_y][alien_pos.x as usize + dx] = sprite[dx];
@@ -377,14 +435,14 @@ impl Alien {
         // カーソルの前か後かでエイリアンの位置が変わる
         if self.i_cursor_alien < i {
             // カーソルより後ろ
-            alien_pos = Alien::index2pos(i, self.pre_ref_alien_pos);
+            alien_pos = self.index2pos(i);
             let char_y = (alien_pos.y / 8) as usize;
             for dx in 0..width {
                 dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
             }
         } else {
             // カーソルより前
-            alien_pos = Alien::index2pos(i, self.ref_alien_pos);
+            alien_pos = self.index2pos(i);
             let char_y = (alien_pos.y / 8) as usize;
             for dx in 0..width {
                 dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
@@ -423,12 +481,51 @@ impl Alien {
             None
         }
     }
+    // 指定したx座標に一番近い列の一番下のエイリアンのインデックス番号を、全滅していたらNoneを返す
+    fn alien_index_near_x(&self, pos_x: i32) -> Option<usize> {
+        // リファレンスエイリアンより左側の場合
+        if pos_x < self.ref_alien_pos.x {
+            return self.column2index(0);
+        }
+        let mut column = (pos_x - self.ref_alien_pos.x) as usize / 16;
+        if column > 11 {
+            column = 10
+        };
+        self.column2index(column)
+    }
+    // 列番号(0..11)のエイリアンが存在していたら一番下の個体のインデックス番号を、全滅していたらNoneを返す
+    fn column2index(&self, column: usize) -> Option<usize> {
+        let mut i = column;
+        while i < 55 {
+            if self.live[i] {
+                return Some(i);
+            }
+            i += 11;
+        }
+        None
+    }
 
     // エイリアンのインデックス番号から座標を返す
-    fn index2pos(i: usize, ref_pos: IVec2) -> IVec2 {
+    fn index2pos(&self, i: usize) -> IVec2 {
+        // リファレンスエイリアンと同期済
+        let ref_pos = if i <= self.i_cursor_alien {
+            self.ref_alien_pos
+        } else {
+            // リファレンスエイリアンとずれている
+            self.pre_ref_alien_pos
+        };
         let dx = i as i32 % 11;
         let dy = i as i32 / 11;
         IVec2::new(ref_pos.x + 16 * dx, ref_pos.y - 16 * dy)
+    }
+    // エイリアンのインデックス番号から、リファレンスエイリアンが動く前に対応した位置を返す
+    fn index2pre_pos(&self, i: usize) -> IVec2 {
+        let dx = i as i32 % 11;
+        let dy = i as i32 / 11;
+        IVec2::new(
+            self.pre_ref_alien_pos.x + 16 * dx,
+            self.pre_ref_alien_pos.y - 16 * dy,
+        )
     }
     // インデックス番号から、下2段は0、中2段は1、上1段は2を返す
     fn ret_alien_type(i: usize) -> usize {

@@ -61,6 +61,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         squid_close_data.create_dot_map(),
         alien_explosion_data.create_dot_map(),
     );
+    let mut alien_bullets = alien::BulletManage::new();
 
     alien.init_alien();
 
@@ -84,7 +85,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ufo.update(&mut map, bullet.fire_cnt);
         // ドットマップに描画
         alien.update(&mut map);
+        alien_bullets.update(&mut map, player.pos.x, &mut alien);
+
         player.array_sprite(&mut map);
+
+        alien_bullets.array_sprite(&mut map);
         bullet.array_sprite(&mut map);
         ufo.array_sprite(&mut map);
 
