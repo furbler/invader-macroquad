@@ -18,19 +18,25 @@ struct Bullet {
     live: bool,      // 弾が画面上にある場合は真
     flying_cnt: i32, // 弾が発射されてからの経過カウント
     speed: i32,      // 移動速度(移動量)
+    // 爆発エフェクトの残り表示カウント
+    explosion_cnt: Option<i32>,
     // 種類によらず、サイズは3x8ドット
     sprite: [u8; 3],
+    // 爆発エフェクトスプライト
+    explosion_sprite: Vec<u8>,
 }
 
 impl Bullet {
-    fn new(btype: BulletType) -> Self {
+    fn new(btype: BulletType, explosion_sprite: Vec<u8>) -> Self {
         Bullet {
             btype,
             pos: IVec2::new(0, 0),
             live: false,
             flying_cnt: 0,
             speed: 0,
+            explosion_cnt: None,
             sprite: [0; 3],
+            explosion_sprite,
         }
     }
     fn fire(&mut self, alien_pos: IVec2, speed: i32) {
@@ -51,6 +57,150 @@ impl Bullet {
         for y in 1..8 {
             self.sprite[table[i]] |= 1 << y;
             i = (i + 1) % 4;
+        }
+    }
+    fn update(&mut self, dot_map: &mut DotMap) {
+        if self.live {
+            // 弾が飛翔中
+            self.flying_cnt += 1;
+        } else {
+            // 爆発エフェクト表示中
+            if let Some(cnt) = self.explosion_cnt {
+                self.explosion_cnt = if cnt < 0 {
+                    // カウント終了したら爆発エフェクトを消す
+                    self.erase_explosion(dot_map);
+                    None
+                } else {
+                    // カウントを進める
+                    Some(cnt - 1)
+                }
+            }
+            return;
+        }
+        // 前回の描画を消す
+        self.erase(dot_map);
+        // 移動
+        self.pos.y += self.speed;
+        // スプライトを更新
+        match self.btype {
+            BulletType::Squiggly => self.update_squiggly_sprite(self.pos.y),
+            BulletType::Plunger => self.update_plunger_sprite(self.pos.y),
+            BulletType::Rolling => self.update_rolling_sprite(self.pos.y),
+        }
+        // 赤線に着弾
+        if DOT_HEIGHT - 1 <= self.pos.y + 7 {
+            // はみださないようにする
+            self.pos.y = DOT_HEIGHT - 8;
+            self.pos.x -= 3;
+            self.live = false;
+            self.create_explosion_effect(dot_map);
+            return;
+        }
+        // 何かに衝突した場合
+        if self.collision(dot_map) {
+            self.pos.x -= 3;
+            self.pos.y += 3;
+            self.live = false;
+            self.create_explosion_effect(dot_map);
+            return;
+        }
+    }
+    fn array_sprite(&self, dot_map: &mut DotMap) {
+        if !self.live || self.explosion_cnt != None {
+            return;
+        }
+        let char_y = (self.pos.y / 8) as usize;
+        let char_offset_bit = (self.pos.y % 8) as u8;
+        for x in 0..self.sprite.len() {
+            // 1にしたいbitには1、透過部分には0をおく
+            let bit_mask: u8 = self.sprite[x] << char_offset_bit;
+            dot_map.map[char_y][self.pos.x as usize + x] |= bit_mask;
+        }
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            for x in 0..self.sprite.len() {
+                // 1にしたいbitには1、透過部分には0をおく
+                let bit_mask = self.sprite[x] >> (8 - char_offset_bit);
+                dot_map.map[char_y + 1][self.pos.x as usize + x] |= bit_mask;
+            }
+        }
+    }
+    // 透過ありで前回の弾の描画を消す
+    fn erase(&mut self, dot_map: &mut DotMap) {
+        let char_y = (self.pos.y / 8) as usize;
+        let char_offset_bit = (self.pos.y % 8) as u8;
+        for x in 0..self.sprite.len() {
+            // 0にしたいbitには0、透過部分には1をおく
+            let bit_mask: u8 = !(self.sprite[x] << char_offset_bit);
+            dot_map.map[char_y][self.pos.x as usize + x] &= bit_mask;
+        }
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            for x in 0..self.sprite.len() {
+                // 0にしたいbitには0、透過部分には1をおく
+                let bit_mask = !(self.sprite[x] >> (8 - char_offset_bit));
+                dot_map.map[char_y + 1][self.pos.x as usize + x] &= bit_mask;
+            }
+        }
+    }
+    // 透過ありで前回の爆発エフェクトの描画を消す
+    fn erase_explosion(&mut self, dot_map: &mut DotMap) {
+        let char_y = (self.pos.y / 8) as usize;
+        let char_offset_bit = (self.pos.y % 8) as u8;
+        for x in 0..self.explosion_sprite.len() {
+            // 0にしたいbitには0、透過部分には1をおく
+            let bit_mask: u8 = !(self.explosion_sprite[x] << char_offset_bit);
+            dot_map.map[char_y][self.pos.x as usize + x] &= bit_mask;
+        }
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            for x in 0..self.explosion_sprite.len() {
+                // 0にしたいbitには0、透過部分には1をおく
+                let bit_mask = !(self.explosion_sprite[x] >> (8 - char_offset_bit));
+                dot_map.map[char_y + 1][self.pos.x as usize + x] &= bit_mask;
+            }
+        }
+    }
+    // 弾の当たり判定
+    fn collision(&self, dot_map: &DotMap) -> bool {
+        // この当たり判定時には移動前の弾の描画は消されていなければならない(残っていると前回の弾と衝突することがある)
+        let char_y = (self.pos.y / 8) as usize;
+        let offset_bit = (self.pos.y % 8) as u8;
+        // 移動した弾の部分のビットマスクを作る
+        for i in 0..3 {
+            let bit_mask = self.sprite[i] & 0b1111_1111;
+            // ビットがバイトの境界をまたぐときの上下それぞれの判定
+            let high = dot_map.map[char_y][self.pos.x as usize] & (bit_mask << offset_bit) != 0;
+            let low = if offset_bit != 0 {
+                dot_map.map[char_y + 1][self.pos.x as usize] & (bit_mask >> (8 - offset_bit)) != 0
+            } else {
+                false
+            };
+            // 何かに衝突していたら
+            if high || low {
+                return true;
+            }
+        }
+        false
+    }
+    // エフェクトを設置する
+    fn create_explosion_effect(&mut self, dot_map: &mut DotMap) {
+        self.explosion_cnt = Some(15);
+
+        let char_y = (self.pos.y / 8) as usize;
+        let char_offset_bit = (self.pos.y % 8) as u8;
+        for x in 0..self.explosion_sprite.len() {
+            // 1にしたいbitには1、透過部分には0をおく
+            let bit_mask: u8 = self.explosion_sprite[x] << char_offset_bit;
+            dot_map.map[char_y][self.pos.x as usize + x] |= bit_mask;
+        }
+        if char_offset_bit != 0 {
+            // 下側にはみ出した部分
+            for x in 0..self.explosion_sprite.len() {
+                // 1にしたいbitには1、透過部分には0をおく
+                let bit_mask = self.explosion_sprite[x] >> (8 - char_offset_bit);
+                dot_map.map[char_y + 1][self.pos.x as usize + x] |= bit_mask;
+            }
         }
     }
     fn update_rolling_sprite(&mut self, pos_y: i32) {
@@ -82,97 +232,6 @@ impl Bullet {
 
         self.sprite[0] |= 1 << (7 - i);
         self.sprite[2] |= 1 << (7 - i);
-    }
-    fn update(&mut self, dot_map: &mut DotMap) {
-        if self.live {
-            self.flying_cnt += 1;
-        } else {
-            return;
-        }
-        // 前回の描画を消す
-        self.erase(dot_map);
-        // 移動
-        self.pos.y += self.speed;
-        // スプライトを更新
-        match self.btype {
-            BulletType::Squiggly => self.update_squiggly_sprite(self.pos.y),
-            BulletType::Plunger => self.update_plunger_sprite(self.pos.y),
-            BulletType::Rolling => self.update_rolling_sprite(self.pos.y),
-        }
-        // 赤線に着弾
-        if DOT_HEIGHT - 1 < self.pos.y + 7 {
-            // はみださないようにする
-            self.pos.y = DOT_HEIGHT - 8;
-            self.live = false;
-            self.erase(dot_map);
-            return;
-        }
-        // 何かに衝突した場合
-        if self.collision(dot_map) {
-            self.live = false;
-            self.erase(dot_map);
-            return;
-        }
-    }
-    fn array_sprite(&self, dot_map: &mut DotMap) {
-        if !self.live {
-            return;
-        }
-        let char_y = (self.pos.y / 8) as usize;
-        let char_offset_bit = (self.pos.y % 8) as u8;
-        for x in 0..self.sprite.len() {
-            // 1にしたいbitには1、透過部分には0をおく
-            let bit_mask: u8 = self.sprite[x] << char_offset_bit;
-            dot_map.map[char_y][self.pos.x as usize + x] |= bit_mask;
-        }
-        if char_offset_bit != 0 {
-            // 下側にはみ出した部分
-            for x in 0..self.sprite.len() {
-                // 1にしたいbitには1、透過部分には0をおく
-                let bit_mask = self.sprite[x] >> (8 - char_offset_bit);
-                dot_map.map[char_y + 1][self.pos.x as usize + x] |= bit_mask;
-            }
-        }
-    }
-    // 透過ありで前回の描画を消す
-    fn erase(&mut self, dot_map: &mut DotMap) {
-        let char_y = (self.pos.y / 8) as usize;
-        let char_offset_bit = (self.pos.y % 8) as u8;
-        for x in 0..self.sprite.len() {
-            // 0にしたいbitには0、透過部分には1をおく
-            let bit_mask: u8 = !(self.sprite[x] << char_offset_bit);
-            dot_map.map[char_y][self.pos.x as usize + x] &= bit_mask;
-        }
-        if char_offset_bit != 0 {
-            // 下側にはみ出した部分
-            for x in 0..self.sprite.len() {
-                // 0にしたいbitには0、透過部分には1をおく
-                let bit_mask = !(self.sprite[x] >> (8 - char_offset_bit));
-                dot_map.map[char_y + 1][self.pos.x as usize + x] &= bit_mask;
-            }
-        }
-    }
-    // 弾の当たり判定
-    fn collision(&self, dot_map: &DotMap) -> bool {
-        // この当たり判定時には移動前の弾の描画は消されていなければならない(残っていると前回の弾と衝突することがある)
-        let char_y = (self.pos.y / 8) as usize;
-        let offset_bit = (self.pos.y % 8) as u8;
-        // 移動した弾の部分のビットマスクを作る
-        for i in 0..3 {
-            let bit_mask = self.sprite[i] & 0b1111_1111;
-            // ビットがバイトの境界をまたぐときの上下それぞれの判定
-            let high = dot_map.map[char_y][self.pos.x as usize] & (bit_mask << offset_bit) != 0;
-            let low = if offset_bit != 0 {
-                dot_map.map[char_y + 1][self.pos.x as usize] & (bit_mask >> (8 - offset_bit)) != 0
-            } else {
-                false
-            };
-            // 何かに衝突していたら
-            if high || low {
-                return true;
-            }
-        }
-        false
     }
 }
 
@@ -211,11 +270,11 @@ pub struct BulletManage {
     speed: i32,
 }
 impl BulletManage {
-    pub fn new() -> Self {
+    pub fn new(explosion_sprite: Vec<u8>) -> Self {
         let mut bullets = Vec::new();
-        bullets.push(Bullet::new(BulletType::Rolling));
-        bullets.push(Bullet::new(BulletType::Plunger));
-        bullets.push(Bullet::new(BulletType::Squiggly));
+        bullets.push(Bullet::new(BulletType::Rolling, explosion_sprite.clone()));
+        bullets.push(Bullet::new(BulletType::Plunger, explosion_sprite.clone()));
+        bullets.push(Bullet::new(BulletType::Squiggly, explosion_sprite.clone()));
 
         BulletManage {
             bullets,
@@ -235,7 +294,7 @@ impl BulletManage {
         let seed = (player_pos_x + alien.ref_alien_pos.x).abs() as usize % 3;
         // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
         // rolling shot(自機を狙う弾)
-        if seed == 0 && !self.bullets[seed].live {
+        if seed == 0 && !self.bullets[seed].live && self.bullets[seed].explosion_cnt == None {
             if (!self.bullets[1].live || self.reload_cnt < self.bullets[1].flying_cnt)
                 && (!self.bullets[2].live || self.reload_cnt < self.bullets[2].flying_cnt)
             {
@@ -245,7 +304,8 @@ impl BulletManage {
                     self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
-        } else if seed == 1 && !self.bullets[seed].live {
+        } else if seed == 1 && !self.bullets[seed].live && self.bullets[seed].explosion_cnt == None
+        {
             // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
             // plunger shot(十字架、ピストン弾)
             if (!self.bullets[0].live || self.reload_cnt < self.bullets[0].flying_cnt)
@@ -256,7 +316,7 @@ impl BulletManage {
                     self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
-        } else if !self.bullets[seed].live {
+        } else if !self.bullets[seed].live && self.bullets[seed].explosion_cnt == None {
             // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
             if (!self.bullets[0].live || self.reload_cnt < self.bullets[0].flying_cnt)
                 && (!self.bullets[1].live || self.reload_cnt < self.bullets[1].flying_cnt)
@@ -379,7 +439,7 @@ impl Alien {
         self.pre_ref_alien_pos = self.ref_alien_pos;
         self.live = vec![true; 55];
     }
-    pub fn update(&mut self, dot_map: &mut DotMap) {
+    pub fn update_array_sprite(&mut self, dot_map: &mut DotMap) {
         self.array_sprite(dot_map);
         self.explosion.update(dot_map);
 

@@ -225,6 +225,21 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         ]),
     };
 
+    let alien_bullet_explosion = DotShape {
+        width: 6,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ # _ _ _",
+            "# _ _ _ # _",
+            "_ _ # # _ #",
+            "_ # # # # _",
+            "# _ # # # _",
+            "_ # # # # #",
+            "# _ # # # _",
+            "_ # _ # _ #",
+        ]),
+    };
+
     let shield = DotShape {
         width: 20,
         height: 16,
@@ -288,6 +303,7 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         "squid_open" => squid_open,
         "squid_close" => squid_close,
         "alien_explosion" => alien_explosion,
+        "alien_bullet_explosion" => alien_bullet_explosion,
         "player_bullet_explosion" => player_bullet_explosion,
         "shield" => shield,
         "ufo" => ufo,

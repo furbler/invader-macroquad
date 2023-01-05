@@ -38,6 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let squid_open_data = sprite::ret_dot_data("squid_open");
     let squid_close_data = sprite::ret_dot_data("squid_close");
     let alien_explosion_data = sprite::ret_dot_data("alien_explosion");
+    let alien_bullet_explosion_data = sprite::ret_dot_data("alien_bullet_explosion");
 
     // 各構造体初期化
     let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
@@ -61,7 +62,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         squid_close_data.create_dot_map(),
         alien_explosion_data.create_dot_map(),
     );
-    let mut alien_bullets = alien::BulletManage::new();
+    let mut alien_bullets = alien::BulletManage::new(alien_bullet_explosion_data.create_dot_map());
 
     alien.init_alien();
 
@@ -84,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bullet.update(&mut map, player.pos, &mut ufo, &mut alien);
         ufo.update(&mut map, bullet.fire_cnt);
         // ドットマップに描画
-        alien.update(&mut map);
+        alien.update_array_sprite(&mut map);
         alien_bullets.update(&mut map, player.pos.x, &mut alien);
 
         player.array_sprite(&mut map);
