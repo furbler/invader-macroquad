@@ -17,16 +17,28 @@ struct Bullet {
     btype: BulletType,
     live: bool,      // 弾が画面上にある場合は真
     flying_cnt: i32, // 弾が発射されてからの経過カウント
+    speed: i32,      // 移動速度(移動量)
     // 種類によらず、サイズは3x8ドット
     sprite: [u8; 3],
 }
 
 impl Bullet {
-    fn fire(&mut self, alien_pos: IVec2) {
+    fn new(btype: BulletType) -> Self {
+        Bullet {
+            btype,
+            pos: IVec2::new(0, 0),
+            live: false,
+            flying_cnt: 0,
+            speed: 0,
+            sprite: [0; 3],
+        }
+    }
+    fn fire(&mut self, alien_pos: IVec2, speed: i32) {
         // 発射するエイリアンより少し下から発射する
         self.pos = IVec2::new(alien_pos.x + 5, alien_pos.y + 16);
         self.live = true;
         self.flying_cnt = 0;
+        self.speed = speed;
     }
     fn update_squiggly_sprite(&mut self, pos_y: i32) {
         // 0クリア
@@ -79,19 +91,27 @@ impl Bullet {
         }
         // 前回の描画を消す
         self.erase(dot_map);
-        self.pos.y += 2;
+        // 移動
+        self.pos.y += self.speed;
+        // スプライトを更新
+        match self.btype {
+            BulletType::Squiggly => self.update_squiggly_sprite(self.pos.y),
+            BulletType::Plunger => self.update_plunger_sprite(self.pos.y),
+            BulletType::Rolling => self.update_rolling_sprite(self.pos.y),
+        }
+        // 赤線に着弾
         if DOT_HEIGHT - 1 < self.pos.y + 7 {
-            // 赤線に着弾
             // はみださないようにする
             self.pos.y = DOT_HEIGHT - 8;
             self.live = false;
             self.erase(dot_map);
             return;
         }
-        match self.btype {
-            BulletType::Squiggly => self.update_squiggly_sprite(self.pos.y),
-            BulletType::Plunger => self.update_plunger_sprite(self.pos.y),
-            BulletType::Rolling => self.update_rolling_sprite(self.pos.y),
+        // 何かに衝突した場合
+        if self.collision(dot_map) {
+            self.live = false;
+            self.erase(dot_map);
+            return;
         }
     }
     fn array_sprite(&self, dot_map: &mut DotMap) {
@@ -132,6 +152,28 @@ impl Bullet {
             }
         }
     }
+    // 弾の当たり判定
+    fn collision(&self, dot_map: &DotMap) -> bool {
+        // この当たり判定時には移動前の弾の描画は消されていなければならない(残っていると前回の弾と衝突することがある)
+        let char_y = (self.pos.y / 8) as usize;
+        let offset_bit = (self.pos.y % 8) as u8;
+        // 移動した弾の部分のビットマスクを作る
+        for i in 0..3 {
+            let bit_mask = self.sprite[i] & 0b1111_1111;
+            // ビットがバイトの境界をまたぐときの上下それぞれの判定
+            let high = dot_map.map[char_y][self.pos.x as usize] & (bit_mask << offset_bit) != 0;
+            let low = if offset_bit != 0 {
+                dot_map.map[char_y + 1][self.pos.x as usize] & (bit_mask >> (8 - offset_bit)) != 0
+            } else {
+                false
+            };
+            // 何かに衝突していたら
+            if high || low {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 struct TableManage {
@@ -165,32 +207,16 @@ pub struct BulletManage {
     squiggly_shot_column_table: TableManage,
     // 弾を発射して、その弾が消える前に別の弾の発射許可を出す時間間隔の最低値
     reload_cnt: i32,
+    // 弾の移動速度(移動量)
+    speed: i32,
 }
 impl BulletManage {
     pub fn new() -> Self {
         let mut bullets = Vec::new();
-        bullets.push(Bullet {
-            btype: BulletType::Rolling,
-            pos: IVec2::new(0, 0),
-            live: false,
-            flying_cnt: 0,
-            sprite: [0; 3],
-        });
-        bullets.push(Bullet {
-            btype: BulletType::Plunger,
-            pos: IVec2::new(0, 0),
-            live: false,
-            flying_cnt: 0,
-            sprite: [0; 3],
-        });
+        bullets.push(Bullet::new(BulletType::Rolling));
+        bullets.push(Bullet::new(BulletType::Plunger));
+        bullets.push(Bullet::new(BulletType::Squiggly));
 
-        bullets.push(Bullet {
-            btype: BulletType::Squiggly,
-            pos: IVec2::new(0, 0),
-            live: false,
-            flying_cnt: 0,
-            sprite: [0; 3],
-        });
         BulletManage {
             bullets,
             plunger_shot_column_table: TableManage {
@@ -202,6 +228,7 @@ impl BulletManage {
                 table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10],
             },
             reload_cnt: 48, // 0x30
+            speed: 1,
         }
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player_pos_x: i32, alien: &Alien) {
@@ -215,7 +242,7 @@ impl BulletManage {
                 // プレイヤーに近い列のエイリアンに生き残りがいたら
                 if let Some(i) = alien.alien_index_near_x(player_pos_x) {
                     // そのエイリアンからrolling shot(自機を狙う)発射
-                    self.bullets[seed].fire(alien.index2pos(i));
+                    self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
         } else if seed == 1 && !self.bullets[seed].live {
@@ -226,7 +253,7 @@ impl BulletManage {
             {
                 if let Some(i) = alien.column2index(self.plunger_shot_column_table.take()) {
                     // plunger shot発射
-                    self.bullets[seed].fire(alien.index2pos(i));
+                    self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
         } else if !self.bullets[seed].live {
@@ -236,7 +263,7 @@ impl BulletManage {
             {
                 if let Some(i) = alien.column2index(self.squiggly_shot_column_table.take()) {
                     // squiggly shot発射
-                    self.bullets[seed].fire(alien.index2pos(i));
+                    self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
         }
