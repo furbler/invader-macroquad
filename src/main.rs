@@ -82,19 +82,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
         // 更新処理
-        player.update();
-        player.draw(&mut map);
-
+        player.update(&mut map);
         bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
-        bullet.draw(&mut map);
-
         ufo.update(&mut map, bullet.fire_cnt);
-        ufo.draw(&mut map);
-
-        alien.update_draw(&mut map);
-
+        alien.update(&mut map);
         alien_bullets.update(&mut map, &mut player, &mut alien);
-        alien_bullets.draw(&mut map);
 
         let game_texture = map.dot_map2texture();
         draw_texture_ex(

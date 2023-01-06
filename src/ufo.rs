@@ -113,10 +113,11 @@ impl Ufo {
                 }
             }
         }
+        self.draw(dot_map);
     }
 
     // UFOをドットマップに描画(縦方向のバイト境界はまたがない)
-    pub fn draw(&self, dot_map: &mut DotMap) {
+    fn draw(&self, dot_map: &mut DotMap) {
         if !self.live {
             return;
         }

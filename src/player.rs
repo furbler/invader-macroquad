@@ -102,10 +102,11 @@ impl Bullet {
                 self.fire(player.pos.x + 7, player.pos.y - 8);
             }
         }
+        self.draw(dot_map);
     }
 
     // プレイヤーの弾をドットマップに描画(縦方向のバイト境界をまたぐ可能性有り)
-    pub fn draw(&mut self, dot_map: &mut DotMap) {
+    fn draw(&mut self, dot_map: &mut DotMap) {
         if let Some(cnt) = self.ban_fire_cnt {
             self.ban_fire_cnt = if cnt < 0 {
                 if self.explosion_effect_show {
@@ -164,7 +165,7 @@ impl Player {
             sprite,
         }
     }
-    pub fn update(&mut self) {
+    pub fn update(&mut self, dot_map: &mut DotMap) {
         self.pre_pos = self.pos;
         // 撃破後、復活前
         if let Some(cnt) = self.explosion_cnt {
@@ -190,9 +191,10 @@ impl Player {
             // 右に移動
             self.pos.x += 1;
         }
+        self.draw(dot_map);
     }
     // プレイヤーをドットマップに描画(縦方向のバイト境界はまたがない)
-    pub fn draw(&mut self, dot_map: &mut DotMap) {
+    fn draw(&mut self, dot_map: &mut DotMap) {
         if let Some(_) = self.explosion_cnt {
             return;
         }

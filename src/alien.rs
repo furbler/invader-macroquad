@@ -216,7 +216,7 @@ impl BulletManage {
                 i: 0,
                 table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10],
             },
-            reload_cnt: 48, // 0x30
+            reload_cnt: (48. * 1.5) as i32, // 0x30 * 1.5
             speed: 1,
         }
     }
@@ -260,8 +260,9 @@ impl BulletManage {
         for i in 0..self.bullets.len() {
             self.bullets[i].update(dot_map, player);
         }
+        self.draw(dot_map);
     }
-    pub fn draw(&self, dot_map: &mut DotMap) {
+    fn draw(&self, dot_map: &mut DotMap) {
         for i in 0..self.bullets.len() {
             self.bullets[i].draw(dot_map);
         }
@@ -366,7 +367,7 @@ impl Alien {
         self.pre_ref_alien_pos = self.ref_alien_pos;
         self.live = vec![true; 55];
     }
-    pub fn update_draw(&mut self, dot_map: &mut DotMap) {
+    pub fn update(&mut self, dot_map: &mut DotMap) {
         // 前回描画した移動前の部分を0で消す
         self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
         // 移動後を描画する
