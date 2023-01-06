@@ -1,4 +1,4 @@
-use crate::{array_sprite::ArraySprite, dot_map::DotMap};
+use crate::{array_sprite::ArraySprite, dot_map::DotMap, player::Player};
 use macroquad::prelude::*;
 
 // 1文字8ピクセル分がいくつ入るか
@@ -46,7 +46,7 @@ impl Bullet {
         self.flying_cnt = 0;
         self.speed = speed;
     }
-    fn update(&mut self, dot_map: &mut DotMap) {
+    fn update(&mut self, dot_map: &mut DotMap, player: &mut Player) {
         if self.live {
             // 弾が飛翔中
             self.flying_cnt += 1;
@@ -84,6 +84,11 @@ impl Bullet {
         }
         // 何かに衝突した場合
         if self.collision(dot_map) {
+            // プレイヤーのいる高さの範囲内に弾が入っている
+            if DOT_HEIGHT - 8 * 3 < self.pos.y + 8 && self.pos.y < DOT_HEIGHT - 8 * 2 {
+                // プレイヤーを破壊する
+                player.remove(dot_map);
+            }
             self.pos.x -= 3;
             self.pos.y += 3;
             self.create_explosion_effect(dot_map);
@@ -215,8 +220,8 @@ impl BulletManage {
             speed: 1,
         }
     }
-    pub fn update(&mut self, dot_map: &mut DotMap, player_pos_x: i32, alien: &Alien) {
-        let seed = (player_pos_x + alien.ref_alien_pos.x).abs() as usize % 3;
+    pub fn update(&mut self, dot_map: &mut DotMap, player: &mut Player, alien: &Alien) {
+        let seed = (player.pos.x + alien.ref_alien_pos.x).abs() as usize % 3;
         // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
         // rolling shot(自機を狙う弾)
         if seed == 0 && !self.bullets[seed].live && self.bullets[seed].explosion_cnt == None {
@@ -224,7 +229,7 @@ impl BulletManage {
                 && (!self.bullets[2].live || self.reload_cnt < self.bullets[2].flying_cnt)
             {
                 // プレイヤーに近い列のエイリアンに生き残りがいたら
-                if let Some(i) = alien.alien_index_near_x(player_pos_x) {
+                if let Some(i) = alien.alien_index_near_x(player.pos.x) {
                     // そのエイリアンからrolling shot(自機を狙う)発射
                     self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
@@ -253,7 +258,7 @@ impl BulletManage {
             }
         }
         for i in 0..self.bullets.len() {
-            self.bullets[i].update(dot_map);
+            self.bullets[i].update(dot_map, player);
         }
     }
     pub fn draw(&self, dot_map: &mut DotMap) {

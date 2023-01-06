@@ -40,7 +40,7 @@ impl Bullet {
     pub fn update(
         &mut self,
         dot_map: &mut DotMap,
-        player_pos: IVec2,
+        player: &mut Player,
         ufo: &mut Ufo,
         alien: &mut Alien,
     ) {
@@ -92,13 +92,14 @@ impl Bullet {
                 }
             }
         } else {
-            // 弾が画面上に無く、射撃可能状態で、かつ発射ボタンが押された場合(スペース、Enter)
+            // 弾が画面上に無く、射撃可能状態で、プレイヤーが生きていて、かつ発射ボタンが押された場合(スペース、Enter)
             if self.ban_fire_cnt == None
+                && player.explosion_cnt == None
                 && (is_key_down(KeyCode::Z)
                     || is_key_down(KeyCode::Space)
                     || is_key_down(KeyCode::Enter))
             {
-                self.fire(player_pos.x + 7, player_pos.y - 8);
+                self.fire(player.pos.x + 7, player.pos.y - 8);
             }
         }
     }
@@ -143,11 +144,13 @@ impl ArraySprite for Bullet {
 }
 
 pub struct Player {
-    width: i32,            // 描画サイズの幅
-    canvas_dot_width: i32, // キャンバスのドット幅
-    pub pos: IVec2,        // 左上位置
-    pre_pos: IVec2,        // 前回描画時の位置
-    sprite: Vec<u8>,       // 左側から縦8ピクセルずつを8bitのベクタで表す
+    width: i32,                   // 描画サイズの幅
+    canvas_dot_width: i32,        // キャンバスのドット幅
+    pub pos: IVec2,               // 左上位置
+    pre_pos: IVec2,               // 前回描画時の位置
+    const_max_explosion_cnt: i32, // 撃破されてから再出撃までのカウント数(定数)
+    explosion_cnt: Option<i32>,   // Some(再出撃までの残りカウント)
+    sprite: Vec<u8>,              // 左側から縦8ピクセルずつを8bitのベクタで表す
 }
 impl Player {
     pub fn new(canvas_dot_width: i32, canvas_dot_height: i32, sprite: Vec<u8>) -> Self {
@@ -156,11 +159,26 @@ impl Player {
             canvas_dot_width,
             pos: IVec2::new(8, canvas_dot_height - 8 * 3),
             pre_pos: IVec2::new(8, canvas_dot_height - 8 * 3),
+            const_max_explosion_cnt: 130,
+            explosion_cnt: None,
             sprite,
         }
     }
     pub fn update(&mut self) {
         self.pre_pos = self.pos;
+        // 撃破後、復活前
+        if let Some(cnt) = self.explosion_cnt {
+            // 一定時間経過したら復活する
+            if cnt > self.const_max_explosion_cnt {
+                self.explosion_cnt = None;
+                self.pos.x = 8;
+                return;
+            }
+            // カウントを進める
+            self.explosion_cnt = Some(cnt + 1);
+            return;
+        }
+
         // プレイヤー移動範囲制限
         if 7 < self.pos.x && (is_key_down(KeyCode::A) || is_key_down(KeyCode::Left)) {
             // 左に移動
@@ -175,10 +193,17 @@ impl Player {
     }
     // プレイヤーをドットマップに描画(縦方向のバイト境界はまたがない)
     pub fn draw(&mut self, dot_map: &mut DotMap) {
+        if let Some(_) = self.explosion_cnt {
+            return;
+        }
         // 前回描画した部分を0で消す
         self.erase(dot_map, self.pre_pos);
         // 移動後描画する
         self.array_sprite(dot_map);
+    }
+    pub fn remove(&mut self, dot_map: &mut DotMap) {
+        self.explosion_cnt = Some(0);
+        self.erase(dot_map, self.pos);
     }
 }
 
