@@ -1,4 +1,4 @@
-use crate::dot_map::DotMap;
+use crate::{array_sprite::ArraySprite, dot_map::DotMap};
 use macroquad::prelude::*;
 
 // 1文字8ピクセル分がいくつ入るか
@@ -46,19 +46,6 @@ impl Bullet {
         self.flying_cnt = 0;
         self.speed = speed;
     }
-    fn update_squiggly_sprite(&mut self, pos_y: i32) {
-        // 0クリア
-        for i in 0..3 {
-            self.sprite[i] = 0;
-        }
-        // i = 0..4
-        let mut i = (pos_y as usize % 12) / 3;
-        let table = [2, 1, 0, 1];
-        for y in 1..8 {
-            self.sprite[table[i]] |= 1 << y;
-            i = (i + 1) % 4;
-        }
-    }
     fn update(&mut self, dot_map: &mut DotMap) {
         if self.live {
             // 弾が飛翔中
@@ -68,7 +55,7 @@ impl Bullet {
             if let Some(cnt) = self.explosion_cnt {
                 self.explosion_cnt = if cnt < 0 {
                     // カウント終了したら爆発エフェクトを消す
-                    self.erase_explosion(dot_map);
+                    self.erase_shifted(dot_map, self.pos);
                     None
                 } else {
                     // カウントを進める
@@ -78,7 +65,7 @@ impl Bullet {
             return;
         }
         // 前回の描画を消す
-        self.erase(dot_map);
+        self.erase_shifted(dot_map, self.pos);
         // 移動
         self.pos.y += self.speed;
         // スプライトを更新
@@ -92,7 +79,6 @@ impl Bullet {
             // はみださないようにする
             self.pos.y = DOT_HEIGHT - 8;
             self.pos.x -= 3;
-            self.live = false;
             self.create_explosion_effect(dot_map);
             return;
         }
@@ -100,108 +86,21 @@ impl Bullet {
         if self.collision(dot_map) {
             self.pos.x -= 3;
             self.pos.y += 3;
-            self.live = false;
             self.create_explosion_effect(dot_map);
             return;
         }
     }
-    fn array_sprite(&self, dot_map: &mut DotMap) {
+    fn draw(&self, dot_map: &mut DotMap) {
         if !self.live || self.explosion_cnt != None {
             return;
         }
-        let char_y = (self.pos.y / 8) as usize;
-        let char_offset_bit = (self.pos.y % 8) as u8;
-        for x in 0..self.sprite.len() {
-            // 1にしたいbitには1、透過部分には0をおく
-            let bit_mask: u8 = self.sprite[x] << char_offset_bit;
-            dot_map.map[char_y][self.pos.x as usize + x] |= bit_mask;
-        }
-        if char_offset_bit != 0 {
-            // 下側にはみ出した部分
-            for x in 0..self.sprite.len() {
-                // 1にしたいbitには1、透過部分には0をおく
-                let bit_mask = self.sprite[x] >> (8 - char_offset_bit);
-                dot_map.map[char_y + 1][self.pos.x as usize + x] |= bit_mask;
-            }
-        }
-    }
-    // 透過ありで前回の弾の描画を消す
-    fn erase(&mut self, dot_map: &mut DotMap) {
-        let char_y = (self.pos.y / 8) as usize;
-        let char_offset_bit = (self.pos.y % 8) as u8;
-        for x in 0..self.sprite.len() {
-            // 0にしたいbitには0、透過部分には1をおく
-            let bit_mask: u8 = !(self.sprite[x] << char_offset_bit);
-            dot_map.map[char_y][self.pos.x as usize + x] &= bit_mask;
-        }
-        if char_offset_bit != 0 {
-            // 下側にはみ出した部分
-            for x in 0..self.sprite.len() {
-                // 0にしたいbitには0、透過部分には1をおく
-                let bit_mask = !(self.sprite[x] >> (8 - char_offset_bit));
-                dot_map.map[char_y + 1][self.pos.x as usize + x] &= bit_mask;
-            }
-        }
-    }
-    // 透過ありで前回の爆発エフェクトの描画を消す
-    fn erase_explosion(&mut self, dot_map: &mut DotMap) {
-        let char_y = (self.pos.y / 8) as usize;
-        let char_offset_bit = (self.pos.y % 8) as u8;
-        for x in 0..self.explosion_sprite.len() {
-            // 0にしたいbitには0、透過部分には1をおく
-            let bit_mask: u8 = !(self.explosion_sprite[x] << char_offset_bit);
-            dot_map.map[char_y][self.pos.x as usize + x] &= bit_mask;
-        }
-        if char_offset_bit != 0 {
-            // 下側にはみ出した部分
-            for x in 0..self.explosion_sprite.len() {
-                // 0にしたいbitには0、透過部分には1をおく
-                let bit_mask = !(self.explosion_sprite[x] >> (8 - char_offset_bit));
-                dot_map.map[char_y + 1][self.pos.x as usize + x] &= bit_mask;
-            }
-        }
-    }
-    // 弾の当たり判定
-    fn collision(&self, dot_map: &DotMap) -> bool {
-        // この当たり判定時には移動前の弾の描画は消されていなければならない(残っていると前回の弾と衝突することがある)
-        let char_y = (self.pos.y / 8) as usize;
-        let offset_bit = (self.pos.y % 8) as u8;
-        // 移動した弾の部分のビットマスクを作る
-        for i in 0..3 {
-            let bit_mask = self.sprite[i] & 0b1111_1111;
-            // ビットがバイトの境界をまたぐときの上下それぞれの判定
-            let high = dot_map.map[char_y][self.pos.x as usize] & (bit_mask << offset_bit) != 0;
-            let low = if offset_bit != 0 {
-                dot_map.map[char_y + 1][self.pos.x as usize] & (bit_mask >> (8 - offset_bit)) != 0
-            } else {
-                false
-            };
-            // 何かに衝突していたら
-            if high || low {
-                return true;
-            }
-        }
-        false
+        self.array_shifted_sprite(dot_map);
     }
     // エフェクトを設置する
     fn create_explosion_effect(&mut self, dot_map: &mut DotMap) {
+        self.live = false;
         self.explosion_cnt = Some(15);
-
-        let char_y = (self.pos.y / 8) as usize;
-        let char_offset_bit = (self.pos.y % 8) as u8;
-        for x in 0..self.explosion_sprite.len() {
-            // 1にしたいbitには1、透過部分には0をおく
-            let bit_mask: u8 = self.explosion_sprite[x] << char_offset_bit;
-            dot_map.map[char_y][self.pos.x as usize + x] |= bit_mask;
-        }
-        if char_offset_bit != 0 {
-            // 下側にはみ出した部分
-            for x in 0..self.explosion_sprite.len() {
-                // 1にしたいbitには1、透過部分には0をおく
-                let bit_mask = self.explosion_sprite[x] >> (8 - char_offset_bit);
-                dot_map.map[char_y + 1][self.pos.x as usize + x] |= bit_mask;
-            }
-        }
+        self.array_shifted_sprite(dot_map);
     }
     fn update_rolling_sprite(&mut self, pos_y: i32) {
         // 真ん中は常に描く
@@ -233,6 +132,32 @@ impl Bullet {
         self.sprite[0] |= 1 << (7 - i);
         self.sprite[2] |= 1 << (7 - i);
     }
+    fn update_squiggly_sprite(&mut self, pos_y: i32) {
+        // 0クリア
+        for i in 0..3 {
+            self.sprite[i] = 0;
+        }
+        // i = 0..4
+        let mut i = (pos_y as usize % 12) / 3;
+        let table = [2, 1, 0, 1];
+        for y in 1..8 {
+            self.sprite[table[i]] |= 1 << y;
+            i = (i + 1) % 4;
+        }
+    }
+}
+impl ArraySprite for Bullet {
+    fn pos(&self) -> IVec2 {
+        self.pos
+    }
+    fn sprite(&self) -> &[u8] {
+        // 描画するのが弾か爆発エフェクトか
+        if self.explosion_cnt == None {
+            &self.sprite
+        } else {
+            &self.explosion_sprite
+        }
+    }
 }
 
 struct TableManage {
@@ -258,7 +183,7 @@ pub struct BulletManage {
     // bulets[0]: squiggly
     // 十字架型(ピストン型)
     // bulets[1]: plunger
-    // ねじ型
+    // ねじ型(プレイヤーを狙う)
     // bulets[2]: rolling
     bullets: Vec<Bullet>,
     // 発射列表
@@ -331,9 +256,9 @@ impl BulletManage {
             self.bullets[i].update(dot_map);
         }
     }
-    pub fn array_sprite(&self, dot_map: &mut DotMap) {
+    pub fn draw(&self, dot_map: &mut DotMap) {
         for i in 0..self.bullets.len() {
-            self.bullets[i].array_sprite(dot_map);
+            self.bullets[i].draw(dot_map);
         }
     }
 }
@@ -351,18 +276,7 @@ impl Explosion {
     fn create_effect(&mut self, dot_map: &mut DotMap, pos: IVec2) {
         self.pos = pos;
         self.effect_cnt = Some(15);
-
-        let char_y = (self.pos.y / 8) as usize;
-        for dx in 0..self.sprite.len() {
-            dot_map.map[char_y][self.pos.x as usize + dx] = self.sprite[dx];
-        }
-    }
-    fn remove(&mut self, dot_map: &mut DotMap) {
-        self.effect_cnt = None;
-        let char_y = (self.pos.y / 8) as usize;
-        for dx in 0..self.sprite.len() {
-            dot_map.map[char_y][self.pos.x as usize + dx] = 0;
-        }
+        self.array_sprite(dot_map);
     }
     fn update(&mut self, dot_map: &mut DotMap) {
         // エフェクトが表示されていたら
@@ -370,12 +284,20 @@ impl Explosion {
             // カウントが終わったら
             if cnt < 0 {
                 // エフェクト削除
-                self.remove(dot_map);
                 self.effect_cnt = None;
+                self.erase(dot_map, self.pos);
             } else {
                 self.effect_cnt = Some(cnt - 1);
             }
         }
+    }
+}
+impl ArraySprite for Explosion {
+    fn pos(&self) -> IVec2 {
+        self.pos
+    }
+    fn sprite(&self) -> &[u8] {
+        &self.sprite
     }
 }
 
@@ -439,7 +361,10 @@ impl Alien {
         self.pre_ref_alien_pos = self.ref_alien_pos;
         self.live = vec![true; 55];
     }
-    pub fn update_array_sprite(&mut self, dot_map: &mut DotMap) {
+    pub fn update_draw(&mut self, dot_map: &mut DotMap) {
+        // 前回描画した移動前の部分を0で消す
+        self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
+        // 移動後を描画する
         self.array_sprite(dot_map);
         self.explosion.update(dot_map);
 
@@ -480,29 +405,6 @@ impl Alien {
             self.ref_alien_pos += self.move_delta;
         }
     }
-    fn array_sprite(&mut self, dot_map: &mut DotMap) {
-        // エイリアンのインデックス番号から該当エイリアンの座標を計算
-        let pre_alien_pos = self.index2pre_pos(self.i_cursor_alien);
-        // 2種類のエイリアンのスプライトのどちらを描画するか
-        let sprite_type: usize = if self.show_sprite { 0 } else { 1 };
-        let sprite =
-            &self.sprite_list[2 * Alien::ret_alien_type(self.i_cursor_alien) + sprite_type];
-        // 描画するエイリアンの横幅
-        let width = sprite.len();
-
-        // エイリアンをドットマップに描画(縦方向のバイト境界はまたがない)
-        // 前回描画した移動前の部分を0で消す
-        let char_y = (pre_alien_pos.y / 8) as usize;
-        for dx in 0..width {
-            dot_map.map[char_y][pre_alien_pos.x as usize + dx] = 0;
-        }
-        // 移動後を描画する
-        let alien_pos = self.index2pos(self.i_cursor_alien);
-        let char_y = (alien_pos.y / 8) as usize;
-        for dx in 0..width {
-            dot_map.map[char_y][alien_pos.x as usize + dx] = sprite[dx];
-        }
-    }
     // 何かの物体が両側の折り返し地点に到達していたら真を返す
     fn check_bump_side(&self, dot_map: &DotMap) -> bool {
         // 判定する壁の高さはUFOの下からプレイヤーの上まで
@@ -518,23 +420,12 @@ impl Alien {
     pub fn remove(&mut self, dot_map: &mut DotMap, i: usize) {
         self.live[i] = false;
         let width = self.sprite_list[2 * Alien::ret_alien_type(i)].len();
-        let alien_pos;
-        // カーソルの前か後かでエイリアンの位置が変わる
-        if self.i_cursor_alien < i {
-            // カーソルより後ろ
-            alien_pos = self.index2pos(i);
-            let char_y = (alien_pos.y / 8) as usize;
-            for dx in 0..width {
-                dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
-            }
-        } else {
-            // カーソルより前
-            alien_pos = self.index2pos(i);
-            let char_y = (alien_pos.y / 8) as usize;
-            for dx in 0..width {
-                dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
-            }
+        let alien_pos = self.index2pos(i);
+        let char_y = (alien_pos.y / 8) as usize;
+        for dx in 0..width {
+            dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
         }
+
         // 爆発エフェクト描画
         self.explosion.create_effect(dot_map, alien_pos);
     }
@@ -623,5 +514,18 @@ impl Alien {
             4 => 2,
             _ => panic!("エイリアンを指すインデックス番号が不正です。"),
         }
+    }
+}
+
+impl ArraySprite for Alien {
+    fn pos(&self) -> IVec2 {
+        // カーソルエイリアンの座標
+        self.index2pos(self.i_cursor_alien)
+    }
+    // カーソルエイリアンのスプライト
+    fn sprite(&self) -> &[u8] {
+        // 2つの状態のスプライトのどちらを描画するか
+        let sprite_type: usize = if self.show_sprite { 0 } else { 1 };
+        &self.sprite_list[2 * Alien::ret_alien_type(self.i_cursor_alien) + sprite_type]
     }
 }

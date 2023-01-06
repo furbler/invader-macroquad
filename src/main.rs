@@ -6,6 +6,7 @@ use std::error::Error;
 use ufo::Ufo;
 
 mod alien;
+mod array_sprite;
 mod dot_map;
 mod player;
 mod sprite;
@@ -85,14 +86,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bullet.update(&mut map, player.pos, &mut ufo, &mut alien);
         ufo.update(&mut map, bullet.fire_cnt);
         // ドットマップに描画
-        alien.update_array_sprite(&mut map);
+        alien.update_draw(&mut map);
         alien_bullets.update(&mut map, player.pos.x, &mut alien);
 
-        player.array_sprite(&mut map);
+        player.draw(&mut map);
 
-        alien_bullets.array_sprite(&mut map);
-        bullet.array_sprite(&mut map);
-        ufo.array_sprite(&mut map);
+        alien_bullets.draw(&mut map);
+        bullet.draw(&mut map);
+        ufo.draw(&mut map);
 
         let game_texture = map.dot_map2texture();
         draw_texture_ex(
