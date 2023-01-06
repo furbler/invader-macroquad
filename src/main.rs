@@ -28,6 +28,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     if bullet_player_data.width != 1 {
         panic!("プレイヤーの弾の幅は1以外は不正です。");
     }
+    let player_explosion_1_data = sprite::ret_dot_data("player_explosion_1");
+    let player_explosion_2_data = sprite::ret_dot_data("player_explosion_2");
     let player_bullet_explosion_data = sprite::ret_dot_data("player_bullet_explosion");
     let ufo_data = sprite::ret_dot_data("ufo");
     let ufo_explosion_data = sprite::ret_dot_data("ufo_explosion");
@@ -42,7 +44,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let alien_bullet_explosion_data = sprite::ret_dot_data("alien_bullet_explosion");
 
     // 各構造体初期化
-    let mut player = Player::new(DOT_WIDTH, DOT_HEIGHT, player_data.create_dot_map());
+    let mut player = Player::new(
+        DOT_WIDTH,
+        DOT_HEIGHT,
+        player_data.create_dot_map(),
+        player_explosion_1_data.create_dot_map(),
+        player_explosion_2_data.create_dot_map(),
+    );
     let mut bullet = Bullet::new(
         bullet_player_data.create_dot_map(),
         player_bullet_explosion_data.create_dot_map(),
@@ -82,13 +90,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
         // 更新処理
-        player.update(&mut map);
+        let player_exploding = player.update(&mut map);
         bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
         ufo.update(&mut map, bullet.fire_cnt);
         alien.update(&mut map);
         alien_bullets.update(&mut map, &mut player, &mut alien);
 
-        let game_texture = map.dot_map2texture();
+        let game_texture = map.dot_map2texture(player_exploding);
         draw_texture_ex(
             game_texture,
             0.,

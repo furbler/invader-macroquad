@@ -86,8 +86,11 @@ impl Bullet {
         if self.collision(dot_map) {
             // プレイヤーのいる高さの範囲内に弾が入っている
             if DOT_HEIGHT - 8 * 3 < self.pos.y + 8 && self.pos.y < DOT_HEIGHT - 8 * 2 {
-                // プレイヤーを破壊する
-                player.remove(dot_map);
+                // プレイヤーが爆発中でなければ
+                if player.explosion_cnt == None {
+                    // プレイヤーを破壊する
+                    player.remove(dot_map);
+                }
             }
             self.pos.x -= 3;
             self.pos.y += 3;

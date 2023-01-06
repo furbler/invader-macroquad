@@ -145,16 +145,23 @@ impl ArraySprite for Bullet {
 }
 
 pub struct Player {
-    width: i32,                   // 描画サイズの幅
-    canvas_dot_width: i32,        // キャンバスのドット幅
-    pub pos: IVec2,               // 左上位置
-    pre_pos: IVec2,               // 前回描画時の位置
-    const_max_explosion_cnt: i32, // 撃破されてから再出撃までのカウント数(定数)
-    explosion_cnt: Option<i32>,   // Some(再出撃までの残りカウント)
-    sprite: Vec<u8>,              // 左側から縦8ピクセルずつを8bitのベクタで表す
+    width: i32,                     // 描画サイズの幅
+    canvas_dot_width: i32,          // キャンバスのドット幅
+    pub pos: IVec2,                 // 左上位置
+    pre_pos: IVec2,                 // 前回描画時の位置
+    const_max_explosion_cnt: i32,   // 撃破されてから再出撃までのカウント数(定数)
+    pub explosion_cnt: Option<i32>, // Some(再出撃までの残りカウント)
+    sprite: Vec<u8>,                // 左側から縦8ピクセルずつを8bitのベクタで表す
+    explosion_sprite: [Vec<u8>; 2],
 }
 impl Player {
-    pub fn new(canvas_dot_width: i32, canvas_dot_height: i32, sprite: Vec<u8>) -> Self {
+    pub fn new(
+        canvas_dot_width: i32,
+        canvas_dot_height: i32,
+        sprite: Vec<u8>,
+        explosion_sprite1: Vec<u8>,
+        explosion_sprite2: Vec<u8>,
+    ) -> Self {
         Player {
             width: sprite.len() as i32,
             canvas_dot_width,
@@ -163,21 +170,31 @@ impl Player {
             const_max_explosion_cnt: 130,
             explosion_cnt: None,
             sprite,
+            explosion_sprite: [explosion_sprite1, explosion_sprite2],
         }
     }
-    pub fn update(&mut self, dot_map: &mut DotMap) {
+    // プレイヤーが爆発中は真を返す
+    pub fn update(&mut self, dot_map: &mut DotMap) -> bool {
         self.pre_pos = self.pos;
         // 撃破後、復活前
         if let Some(cnt) = self.explosion_cnt {
-            // 一定時間経過したら復活する
-            if cnt > self.const_max_explosion_cnt {
+            if cnt < 50 {
+                // 画像切り替え直後は消す
+                if cnt % 5 == 0 {
+                    self.erase(dot_map, self.pos);
+                }
+                self.array_sprite(dot_map);
+            } else if cnt == 50 {
+                self.erase(dot_map, self.pos);
+            } else if self.const_max_explosion_cnt < cnt {
+                // 一定時間経過したら復活する
                 self.explosion_cnt = None;
                 self.pos.x = 8;
-                return;
+                return false;
             }
             // カウントを進める
             self.explosion_cnt = Some(cnt + 1);
-            return;
+            return true;
         }
 
         // プレイヤー移動範囲制限
@@ -192,6 +209,7 @@ impl Player {
             self.pos.x += 1;
         }
         self.draw(dot_map);
+        false
     }
     // プレイヤーをドットマップに描画(縦方向のバイト境界はまたがない)
     fn draw(&mut self, dot_map: &mut DotMap) {
@@ -214,6 +232,16 @@ impl ArraySprite for Player {
         self.pos
     }
     fn sprite(&self) -> &[u8] {
-        &self.sprite
+        // 爆発画像表示中
+        if let Some(cnt) = self.explosion_cnt {
+            // 5フレーム毎にスプライト切り替え
+            if (cnt / 5) % 2 == 0 {
+                &self.explosion_sprite[0]
+            } else {
+                &self.explosion_sprite[1]
+            }
+        } else {
+            &self.sprite
+        }
     }
 }

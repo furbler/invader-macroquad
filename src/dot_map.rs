@@ -32,7 +32,7 @@ impl DotMap {
         }
     }
     // DotMapを1ピクセル4バイトでrgbaを表し、u8のベクタにまとめる
-    fn convert_to_color_bytes(&self) -> Vec<u8> {
+    fn convert_to_color_bytes(&self, player_exploding: bool) -> Vec<u8> {
         let mut color_bytes: Vec<u8> = Vec::new();
         for i_char in 0..CHAR_HEIGHT as usize {
             for bit in 0..8 {
@@ -40,16 +40,21 @@ impl DotMap {
                     if self.map[i_char][pos_x] & (1 << bit) == 0 {
                         color_bytes.write(&[0, 0, 0, 255]).unwrap();
                     } else {
-                        // 真っ白だと目に負担があるので少し暗くする
-                        color_bytes.write(&pos2rgba(i_char)).unwrap();
+                        if player_exploding {
+                            // プレイヤーが爆発中はすべて赤にする
+                            color_bytes.write(&set_color(Color::Red)).unwrap();
+                        } else {
+                            // 高さに応じて色を変える
+                            color_bytes.write(&pos2rgba(i_char)).unwrap();
+                        }
                     }
                 }
             }
         }
         color_bytes
     }
-    pub fn dot_map2texture(&self) -> Texture2D {
-        let rgba = self.convert_to_color_bytes();
+    pub fn dot_map2texture(&self, player_exploding: bool) -> Texture2D {
+        let rgba = self.convert_to_color_bytes(player_exploding);
         rgba2texture(rgba)
     }
 }
@@ -73,11 +78,11 @@ enum Color {
 fn set_color(color: Color) -> [u8; 4] {
     match color {
         Color::Red => [210, 0, 0, 255],          // 赤色
-        Color::Purple => [219, 85, 221, 255],    // 紫色
+        Color::Purple => [220, 20, 230, 255],    // 紫色
         Color::BLUE => [83, 83, 241, 255],       // 青色
         Color::Green => [98, 222, 109, 255],     // 緑色
         Color::Turquoise => [68, 200, 210, 255], // 水色
-        Color::Yellow => [190, 180, 80, 255],    // 黄色
+        Color::Yellow => [220, 210, 30, 255],    // 黄色
     }
 }
 // 引数の位置に対応したrgba値を返す
