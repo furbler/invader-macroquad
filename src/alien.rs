@@ -526,6 +526,14 @@ impl Alien {
             self.pre_ref_alien_pos.y - 16 * dy,
         )
     }
+    pub fn index2score(i: usize) -> i32 {
+        match Alien::ret_alien_type(i) {
+            0 => 10,
+            1 => 20,
+            2 => 30,
+            _ => panic!("エイリアンを指すインデックス番号が不正です。"),
+        }
+    }
     // インデックス番号から、下2段は0、中2段は1、上1段は2を返す
     fn ret_alien_type(i: usize) -> usize {
         let row = i / 11;

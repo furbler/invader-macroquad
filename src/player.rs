@@ -13,6 +13,7 @@ pub struct Bullet {
     pub fire_cnt: i32,           // ステージ開始からの累計射撃数
     sprite: Vec<u8>,             // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: Vec<u8>,   // 爆発画像
+    score: i32,                  // 獲得点数
 }
 
 impl Bullet {
@@ -25,6 +26,7 @@ impl Bullet {
             fire_cnt: 0,
             sprite,
             explosion_sprite,
+            score: 0,
         }
     }
     // 弾を発射
@@ -71,8 +73,8 @@ impl Bullet {
                     if self.pos.y / 8 < 2 {
                         // UFOの爆発エフェクト表示中でなければ
                         if ufo.explosion.show_cnt == None {
-                            // UFOの撃破
-                            ufo.hit_player_bullet(dot_map);
+                            // UFOの撃破時には点数を加算
+                            self.score += ufo.hit_player_bullet(dot_map, self.fire_cnt);
                         }
                         // 爆発エフェクトは表示しない
                         self.explosion_effect_show = false;
@@ -80,6 +82,8 @@ impl Bullet {
                         // 衝突したのがUFO(の高さ)より下かつ、リファレンスエイリアンより上だった場合のみ
                         // エイリアンに当たっていた場合
                         if let Some(i) = alien.pos2index(self.pos) {
+                            // 撃破したエイリアンの点数を追加
+                            self.score += Alien::index2score(i);
                             alien.remove(dot_map, i);
                             // 爆発エフェクトは表示しない
                             self.explosion_effect_show = false;

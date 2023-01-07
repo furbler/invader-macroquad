@@ -39,13 +39,14 @@ impl ArraySprite for Explosion {
 
 pub struct Ufo {
     width: i32,
-    canvas_dot_width: i32, // キャンバスのドット幅
-    pos: IVec2,            // 左上位置
-    pre_pos: IVec2,        // 前回描画時の位置
-    live: bool,            // 存在しているか否か
-    move_dir: i32,         // 移動方向
-    lapse_time: f64,       // 前回画面から消滅したときの時刻
-    sprite: Vec<u8>,       // 左側から縦8ピクセルずつを8bitのベクタで表す
+    canvas_dot_width: i32,  // キャンバスのドット幅
+    pos: IVec2,             // 左上位置
+    pre_pos: IVec2,         // 前回描画時の位置
+    live: bool,             // 存在しているか否か
+    move_dir: i32,          // 移動方向
+    lapse_time: f64,        // 前回画面から消滅したときの時刻
+    score_table: [i32; 15], // プレイヤーの発射数に対応した獲得得点表
+    sprite: Vec<u8>,        // 左側から縦8ピクセルずつを8bitのベクタで表す
     pub explosion: Explosion,
 }
 
@@ -58,6 +59,9 @@ impl Ufo {
             pre_pos: IVec2::new(0, 8),
             live: false,
             move_dir: 1,
+            score_table: [
+                50, 50, 100, 150, 100, 100, 50, 300, 100, 100, 100, 50, 150, 100, 100,
+            ],
             lapse_time: time::get_time(),
             sprite,
             explosion: Explosion {
@@ -78,11 +82,13 @@ impl Ufo {
         self.erase(dot_map, self.pre_pos);
     }
     // プレイヤーの弾が当たった場合
-    pub fn hit_player_bullet(&mut self, dot_map: &mut DotMap) {
+    pub fn hit_player_bullet(&mut self, dot_map: &mut DotMap, fire_cnt: i32) -> i32 {
         // UFOを消す
         self.remove(dot_map);
         // 爆発エフェクト描画
         self.explosion.create_effect(dot_map, self.pos);
+
+        self.score_table[(fire_cnt - 1) as usize % 15]
     }
     pub fn update(&mut self, dot_map: &mut DotMap, fire_cnt: i32) {
         self.pre_pos = self.pos;
