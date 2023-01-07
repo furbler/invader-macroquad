@@ -86,15 +86,37 @@ async fn main() -> Result<(), Box<dyn Error>> {
             map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
         }
     }
+
+    // ポーズ
+    let mut pause = false;
+    // 真の場合、画面全体が赤色になる
+    let mut player_exploding = false;
+
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
-        // 更新処理
-        let player_exploding = player.update(&mut map);
-        bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
-        ufo.update(&mut map, bullet.fire_cnt);
-        alien.update(&mut map);
-        alien_bullets.update(&mut map, &mut player, &mut alien);
+
+        let pause_key_press = is_key_pressed(KeyCode::Escape);
+        // 非ポーズ時にポーズキーが押された場合
+        if pause_key_press && !pause {
+            // ポーズ開始
+            pause = true;
+        } else {
+            if pause {
+                // ポーズ中にポーズキーが押された場合
+                if pause_key_press {
+                    // ポーズ解除
+                    pause = false;
+                }
+            } else {
+                // 更新処理
+                player_exploding = player.update(&mut map);
+                bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
+                ufo.update(&mut map, bullet.fire_cnt);
+                alien.update(&mut map);
+                alien_bullets.update(&mut map, &mut player, &mut alien);
+            }
+        }
 
         let game_texture = map.dot_map2texture(player_exploding);
         draw_texture_ex(
