@@ -18,6 +18,13 @@ const CHAR_HEIGHT: i32 = 26;
 // ドット単位の大きさ
 const DOT_WIDTH: i32 = 8 * CHAR_WIDTH;
 const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
+// 最終的に表示されるディスプレイの大きさ
+// 幅は変わらない
+const DISPLAY_DOT_WIDTH: i32 = DOT_WIDTH;
+// 上のスコア表示用の4文字分 + 下の残機表示用の1文字分を加える
+const DISPLAY_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
+// 1ドットを何ピクセル四方で表示するか(pixel / dot)
+const SCALE: i32 = 3;
 
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -122,10 +129,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         draw_texture_ex(
             game_texture,
             0.,
-            0.,
+            (4 * 8 * SCALE) as f32,
             WHITE,
             DrawTextureParams {
-                dest_size: Some(Vec2::new(screen_width(), screen_height())),
+                dest_size: Some(Vec2::new(
+                    (DOT_WIDTH * SCALE) as f32,
+                    (DOT_HEIGHT * SCALE) as f32,
+                )),
                 ..Default::default()
             },
         );
@@ -137,8 +147,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 fn window_conf() -> Conf {
     Conf {
         window_title: "invader-macroquad".to_owned(),
-        window_width: DOT_WIDTH * 3,
-        window_height: DOT_HEIGHT * 3,
+        window_width: DISPLAY_DOT_WIDTH * SCALE,
+        window_height: DISPLAY_DOT_HEIGHT * SCALE,
         ..Default::default()
     }
 }
