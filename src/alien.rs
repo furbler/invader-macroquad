@@ -224,6 +224,22 @@ impl BulletManage {
         }
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player: &mut Player, alien: &Alien) {
+        // プレイヤーが爆発中は発射しない
+        if player.explosion_cnt == None {
+            self.which_fire(player, alien);
+        }
+        for i in 0..self.bullets.len() {
+            self.bullets[i].update(dot_map, player);
+        }
+        self.draw(dot_map);
+    }
+    fn draw(&self, dot_map: &mut DotMap) {
+        for i in 0..self.bullets.len() {
+            self.bullets[i].draw(dot_map);
+        }
+    }
+    // どのエイリアンがどの種類の弾を撃つか決める
+    fn which_fire(&mut self, player: &Player, alien: &Alien) {
         let seed = (player.pos.x + alien.ref_alien_pos.x).abs() as usize % 3;
         // 自身が画面上に無く、かつ他2種の弾が発射してから一定時間経過した後
         // rolling shot(自機を狙う弾)
@@ -259,15 +275,6 @@ impl BulletManage {
                     self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
-        }
-        for i in 0..self.bullets.len() {
-            self.bullets[i].update(dot_map, player);
-        }
-        self.draw(dot_map);
-    }
-    fn draw(&self, dot_map: &mut DotMap) {
-        for i in 0..self.bullets.len() {
-            self.bullets[i].draw(dot_map);
         }
     }
 }
@@ -370,8 +377,13 @@ impl Alien {
         self.pre_ref_alien_pos = self.ref_alien_pos;
         self.live = vec![true; 55];
     }
-    pub fn update(&mut self, dot_map: &mut DotMap) {
-        // 前回描画した移動前の部分を0で消す
+    pub fn update(&mut self, dot_map: &mut DotMap, player_exploding: bool) {
+        // プレイヤーが爆発中はエイリアンはすべて停止させる
+        if player_exploding {
+            return;
+        }
+
+        // カーソルエイリアンの前回描画した移動前の部分を0で消す
         self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
         // 移動後を描画する
         self.array_sprite(dot_map);

@@ -113,7 +113,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 player_exploding = player.update(&mut map);
                 bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
                 ufo.update(&mut map, bullet.fire_cnt);
-                alien.update(&mut map);
+                alien.update(&mut map, player_exploding);
                 alien_bullets.update(&mut map, &mut player, &mut alien);
             }
         }
