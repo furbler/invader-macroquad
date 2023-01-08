@@ -14,6 +14,13 @@ mod player;
 mod sprite;
 mod ufo;
 
+#[derive(PartialEq)]
+enum Scene {
+    Title,
+    Play,
+    Pause,
+}
+
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut map = DotMap::new();
@@ -73,57 +80,55 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // ステージが進むときの初期化
     let mut reset_stage = false;
 
-    // ポーズ
-    let mut pause = false;
     // 真の場合、画面全体を赤色にする
     let mut player_exploding = false;
 
+    let mut scene = Scene::Title;
     loop {
-        // ゲーム開始時とステージ開始時共通の処理
-        if reset_all || reset_stage {
-            // すべて消す
-            map.all_clear();
-            // プレイヤーの下の横線
-            map.draw_holizon_line(canvas::DOT_HEIGHT - 1);
-            // シールド配置
-            for i in 0..4 {
-                let gap = (shield_data.width as usize + 23) * i;
-                for dx in 0..shield_data.width as usize {
-                    map.map[20][gap + 33 + dx] = shield[dx];
-                }
-                for dx in 0..shield_data.width as usize {
-                    map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
+        match scene {
+            Scene::Title => {
+                if is_key_pressed(KeyCode::Enter) {
+                    scene = Scene::Play;
                 }
             }
-            alien.reset();
-            ufo.reset();
-        }
-        // ゲーム開始時限定の処理
-        if reset_all {
-            player.reset_all();
-            player_bullet.reset_all();
-        }
-        // ステージ開始時限定の処理
-        if reset_stage {
-            player.reset_stage();
-            player_bullet.reset_stage();
-        }
-        reset_all = false;
-        reset_stage = false;
-
-        let pause_key_press = is_key_pressed(KeyCode::Escape);
-        // 非ポーズ時にポーズキーが押された場合
-        if pause_key_press && !pause {
-            // ポーズ開始
-            pause = true;
-        } else {
-            if pause {
-                // ポーズ中にポーズキーが押された場合
-                if pause_key_press {
-                    // ポーズ解除
-                    pause = false;
+            Scene::Play => {
+                // Escキーが押されていたらポーズ
+                if is_key_pressed(KeyCode::Escape) {
+                    scene = Scene::Pause;
                 }
-            } else {
+
+                // ゲーム開始時とステージ開始時共通の処理
+                if reset_all || reset_stage {
+                    // すべて消す
+                    map.all_clear();
+                    // プレイヤーの下の横線
+                    map.draw_holizon_line(canvas::DOT_HEIGHT - 1);
+                    // シールド配置
+                    for i in 0..4 {
+                        let gap = (shield_data.width as usize + 23) * i;
+                        for dx in 0..shield_data.width as usize {
+                            map.map[20][gap + 33 + dx] = shield[dx];
+                        }
+                        for dx in 0..shield_data.width as usize {
+                            map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
+                        }
+                    }
+                    alien.reset();
+                    ufo.reset();
+                }
+                // ゲーム開始時限定の処理
+                if reset_all {
+                    player.reset_all();
+                    player_bullet.reset_all();
+                }
+                // ステージ開始時限定の処理
+                if reset_stage {
+                    player.reset_stage();
+                    player_bullet.reset_stage();
+                }
+                reset_all = false;
+                reset_stage = false;
+
                 // 更新処理
                 player.update(&mut map);
                 player_exploding = if player.explosion_cnt == None {
@@ -147,28 +152,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     reset_all = true;
                 }
             }
+            Scene::Pause => {
+                // Escキーが押されていたらポーズ解除
+                if is_key_pressed(KeyCode::Escape) {
+                    scene = Scene::Play;
+                }
+            }
         }
-        // 画面全体を背景色(黒)クリア
-        clear_background(BLACK);
-        let game_texture = map.dot_map2texture(player_exploding);
-        draw_texture_ex(
-            game_texture,
-            0.,
-            (4 * 8 * canvas::SCALE) as f32,
-            WHITE,
-            DrawTextureParams {
-                dest_size: Some(Vec2::new(
-                    (canvas::DOT_WIDTH * canvas::SCALE) as f32,
-                    (canvas::DOT_HEIGHT * canvas::SCALE) as f32,
-                )),
-                ..Default::default()
-            },
-        );
-        // 得点表示
-        draw_score(player_bullet.score, player_exploding);
-        // 残機表示
-        bottom.draw(player.life, player_exploding, canvas::SCALE);
-
+        if scene == Scene::Pause || scene == Scene::Play {
+            // 画面全体を背景色(黒)クリア
+            clear_background(BLACK);
+            let game_texture = map.dot_map2texture(player_exploding);
+            draw_texture_ex(
+                game_texture,
+                0.,
+                (4 * 8 * canvas::SCALE) as f32,
+                WHITE,
+                DrawTextureParams {
+                    dest_size: Some(Vec2::new(
+                        (canvas::DOT_WIDTH * canvas::SCALE) as f32,
+                        (canvas::DOT_HEIGHT * canvas::SCALE) as f32,
+                    )),
+                    ..Default::default()
+                },
+            );
+            // 得点表示
+            draw_score(player_bullet.score, player_exploding);
+            // 残機表示
+            bottom.draw(player.life, player_exploding, canvas::SCALE);
+        }
         next_frame().await
     }
 }

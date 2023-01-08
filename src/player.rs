@@ -49,7 +49,6 @@ impl Bullet {
         self.explosion_effect_show = false;
         self.ban_fire_cnt = None;
         self.fire_cnt = 0;
-        self.score = 0;
     }
     pub fn update(
         &mut self,
