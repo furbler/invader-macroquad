@@ -1,3 +1,4 @@
+use crate::canvas;
 use crate::{array_sprite::ArraySprite, dot_map::DotMap};
 use macroquad::prelude::*;
 use macroquad::time;
@@ -39,7 +40,6 @@ impl ArraySprite for Explosion {
 
 pub struct Ufo {
     width: i32,
-    canvas_dot_width: i32,  // キャンバスのドット幅
     pos: IVec2,             // 左上位置
     pre_pos: IVec2,         // 前回描画時の位置
     live: bool,             // 存在しているか否か
@@ -51,10 +51,9 @@ pub struct Ufo {
 }
 
 impl Ufo {
-    pub fn new(canvas_dot_width: i32, sprite: Vec<u8>, explosion_sprite: Vec<u8>) -> Self {
+    pub fn new(sprite: Vec<u8>, explosion_sprite: Vec<u8>) -> Self {
         Ufo {
             width: sprite.len() as i32,
-            canvas_dot_width,
             pos: IVec2::new(0, 8),
             pre_pos: IVec2::new(0, 8),
             live: false,
@@ -70,6 +69,10 @@ impl Ufo {
                 sprite: explosion_sprite,
             },
         }
+    }
+    pub fn reset(&mut self) {
+        self.live = false;
+        self.lapse_time = time::get_time();
     }
     fn remove(&mut self, dot_map: &mut DotMap) {
         self.live = false;
@@ -95,7 +98,7 @@ impl Ufo {
         self.explosion.update_draw(dot_map);
         // 画面の反対側まで到達した場合
         if (self.move_dir < 0 && self.pos.x < 8)
-            || (0 < self.move_dir && self.canvas_dot_width - 8 <= self.pos.x + self.width)
+            || (0 < self.move_dir && canvas::DOT_WIDTH - 8 <= self.pos.x + self.width)
         {
             self.remove(dot_map);
             return;
@@ -110,7 +113,7 @@ impl Ufo {
                 self.live = true;
                 // プレイヤーの発射数が偶数であれば右から左へ動く
                 if fire_cnt % 2 == 0 {
-                    self.pos.x = self.canvas_dot_width - self.width - 8;
+                    self.pos.x = canvas::DOT_WIDTH - self.width - 8;
                     self.move_dir = -1;
                 } else {
                     // 奇数ならば左から右へ動く

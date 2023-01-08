@@ -1,16 +1,8 @@
+use crate::canvas;
 use crate::dot_map;
 use macroquad::prelude::*;
 use std::io::Write;
-
-// 1文字8ピクセル分がいくつ入るか
-const CHAR_HEIGHT: i32 = 26;
-// ドット単位の大きさ
-const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
-// 最終的に表示されるディスプレイの大きさ
-// 上のスコア表示用の4文字分 + 下の残機表示用の1文字分を加える
-const ALL_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
 pub struct BottomArea {
-    // G
     display_width: f32,
     player_texture: Texture2D,
     exploding_player_texture: Texture2D,
@@ -44,7 +36,7 @@ impl BottomArea {
         draw_text(
             text,
             (8 * scale) as f32,
-            ((ALL_DOT_HEIGHT - 1) * scale) as f32,
+            ((canvas::ALL_DOT_HEIGHT - 1) * scale) as f32,
             font_size,
             font_color,
         );
@@ -55,7 +47,7 @@ impl BottomArea {
             draw_texture_ex(
                 texture,
                 x,
-                ((ALL_DOT_HEIGHT - 8) * scale) as f32,
+                ((canvas::ALL_DOT_HEIGHT - 8) * scale) as f32,
                 WHITE,
                 DrawTextureParams {
                     dest_size: Some(Vec2::new(

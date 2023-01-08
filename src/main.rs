@@ -8,24 +8,11 @@ use ufo::Ufo;
 mod alien;
 mod array_sprite;
 mod bottom_area;
+mod canvas;
 mod dot_map;
 mod player;
 mod sprite;
 mod ufo;
-
-// 1文字8ピクセル分がいくつ入るか
-const CHAR_WIDTH: i32 = 28;
-const CHAR_HEIGHT: i32 = 26;
-// ドット単位の大きさ
-const DOT_WIDTH: i32 = 8 * CHAR_WIDTH;
-const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
-// 最終的に表示されるディスプレイの大きさ
-// 幅は変わらない
-const ALL_DOT_WIDTH: i32 = DOT_WIDTH;
-// 上のスコア表示用の4文字分 + 下の残機表示用の1文字分を加える
-const ALL_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
-// 1ドットを何ピクセル四方で表示するか(pixel / dot)
-const SCALE: i32 = 3;
 
 #[macroquad::main(window_conf)]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -56,18 +43,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // 画面下部
     let bottom = bottom_area::BottomArea::new(&player_sprite);
     let mut player = Player::new(
-        DOT_WIDTH,
-        DOT_HEIGHT,
         player_sprite,
         player_explosion_1_data.create_dot_map(),
         player_explosion_2_data.create_dot_map(),
     );
-    let mut bullet = Bullet::new(
+    let mut player_bullet = Bullet::new(
         bullet_player_data.create_dot_map(),
         player_bullet_explosion_data.create_dot_map(),
     );
     let mut ufo = Ufo::new(
-        DOT_WIDTH,
         ufo_data.create_dot_map(),
         ufo_explosion_data.create_dot_map(),
     );
@@ -84,19 +68,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     let mut alien_bullets = alien::BulletManage::new(alien_bullet_explosion_data.create_dot_map());
 
-    alien.init_alien();
-
-    // プレイヤーの下の横線
-    map.draw_holizon_line(DOT_HEIGHT - 1);
-    for i in 0..4 {
-        let gap = (shield_data.width as usize + 23) * i;
-        for dx in 0..shield_data.width as usize {
-            map.map[20][gap + 33 + dx] = shield[dx];
-        }
-        for dx in 0..shield_data.width as usize {
-            map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
-        }
-    }
+    // スコア、残機などすべて初期化する
+    let mut reset_all = true;
+    // ステージが進むときの初期化
+    let mut reset_stage = false;
 
     // ポーズ
     let mut pause = false;
@@ -104,8 +79,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut player_exploding = false;
 
     loop {
-        // 画面全体を背景色(黒)クリア
-        clear_background(BLACK);
+        // ゲーム開始時とステージ開始時共通の処理
+        if reset_all || reset_stage {
+            // すべて消す
+            map.all_clear();
+            // プレイヤーの下の横線
+            map.draw_holizon_line(canvas::DOT_HEIGHT - 1);
+            // シールド配置
+            for i in 0..4 {
+                let gap = (shield_data.width as usize + 23) * i;
+                for dx in 0..shield_data.width as usize {
+                    map.map[20][gap + 33 + dx] = shield[dx];
+                }
+                for dx in 0..shield_data.width as usize {
+                    map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
+                }
+            }
+            alien.reset();
+            ufo.reset();
+        }
+        // ゲーム開始時限定の処理
+        if reset_all {
+            player.reset_all();
+            player_bullet.reset_all();
+        }
+        // ステージ開始時限定の処理
+        if reset_stage {
+            player.reset_stage();
+            player_bullet.reset_stage();
+        }
+        reset_all = false;
+        reset_stage = false;
+
         let pause_key_press = is_key_pressed(KeyCode::Escape);
         // 非ポーズ時にポーズキーが押された場合
         if pause_key_press && !pause {
@@ -127,30 +132,42 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     true
                 };
 
-                bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
-                ufo.update(&mut map, bullet.fire_cnt);
+                player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
+                ufo.update(&mut map, player_bullet.fire_cnt);
                 alien.update(&mut map, player_exploding);
                 alien_bullets.update(&mut map, &mut player, &mut alien);
+                // エイリアンが全滅したら
+                if alien.live_num <= 0 {
+                    // 次のステージへ進む
+                    reset_stage = true;
+                }
+                // プレイヤーの残機が0またはエイリアンがプレイヤーの高さまで侵攻したら
+                if player.life <= 0 || alien.invaded() {
+                    // ゲームオーバー
+                    reset_all = true;
+                }
             }
         }
+        // 画面全体を背景色(黒)クリア
+        clear_background(BLACK);
         let game_texture = map.dot_map2texture(player_exploding);
         draw_texture_ex(
             game_texture,
             0.,
-            (4 * 8 * SCALE) as f32,
+            (4 * 8 * canvas::SCALE) as f32,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(
-                    (DOT_WIDTH * SCALE) as f32,
-                    (DOT_HEIGHT * SCALE) as f32,
+                    (canvas::DOT_WIDTH * canvas::SCALE) as f32,
+                    (canvas::DOT_HEIGHT * canvas::SCALE) as f32,
                 )),
                 ..Default::default()
             },
         );
         // 得点表示
-        draw_score(bullet.score, player_exploding);
+        draw_score(player_bullet.score, player_exploding);
         // 残機表示
-        bottom.draw(player.life, player_exploding, SCALE);
+        bottom.draw(player.life, player_exploding, canvas::SCALE);
 
         next_frame().await
     }
@@ -159,7 +176,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 // 上に獲得得点を表示
 pub fn draw_score(score: i32, player_exploding: bool) {
     let text = &format!("{:0>5}", score);
-    let font_size = (14 * SCALE) as f32;
+    let font_size = (14 * canvas::SCALE) as f32;
     // プレイヤーの爆発中は赤色にする
     let color = if player_exploding {
         Color::new(0.82, 0., 0., 1.00)
@@ -169,8 +186,8 @@ pub fn draw_score(score: i32, player_exploding: bool) {
     // 指定座標は文字の左下
     draw_text(
         text,
-        (24 * SCALE) as f32,
-        (32 * SCALE) as f32,
+        (24 * canvas::SCALE) as f32,
+        (32 * canvas::SCALE) as f32,
         font_size,
         color,
     );
@@ -180,8 +197,8 @@ pub fn draw_score(score: i32, player_exploding: bool) {
 fn window_conf() -> Conf {
     Conf {
         window_title: "invader-macroquad".to_owned(),
-        window_width: ALL_DOT_WIDTH * SCALE,
-        window_height: ALL_DOT_HEIGHT * SCALE,
+        window_width: canvas::ALL_DOT_WIDTH * canvas::SCALE,
+        window_height: canvas::ALL_DOT_HEIGHT * canvas::SCALE,
         ..Default::default()
     }
 }

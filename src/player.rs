@@ -1,4 +1,5 @@
 use crate::alien::Alien;
+use crate::canvas;
 use crate::ufo::Ufo;
 use crate::{array_sprite::ArraySprite, dot_map::DotMap};
 use macroquad::prelude::*;
@@ -38,6 +39,17 @@ impl Bullet {
             self.fire_cnt += 1;
             self.explosion_effect_show = false;
         }
+    }
+    pub fn reset_all(&mut self) {
+        self.reset_stage();
+        self.score = 0;
+    }
+    pub fn reset_stage(&mut self) {
+        self.live = false;
+        self.explosion_effect_show = false;
+        self.ban_fire_cnt = None;
+        self.fire_cnt = 0;
+        self.score = 0;
     }
     pub fn update(
         &mut self,
@@ -150,7 +162,6 @@ impl ArraySprite for Bullet {
 
 pub struct Player {
     width: i32,                     // 描画サイズの幅
-    canvas_dot_width: i32,          // キャンバスのドット幅
     pub pos: IVec2,                 // 左上位置
     pre_pos: IVec2,                 // 前回描画時の位置
     const_max_explosion_cnt: i32,   // 撃破されてから再出撃までのカウント数(定数)
@@ -160,24 +171,26 @@ pub struct Player {
     explosion_sprite: [Vec<u8>; 2],
 }
 impl Player {
-    pub fn new(
-        canvas_dot_width: i32,
-        canvas_dot_height: i32,
-        sprite: Vec<u8>,
-        explosion_sprite1: Vec<u8>,
-        explosion_sprite2: Vec<u8>,
-    ) -> Self {
+    pub fn new(sprite: Vec<u8>, explosion_sprite1: Vec<u8>, explosion_sprite2: Vec<u8>) -> Self {
         Player {
             width: sprite.len() as i32,
-            canvas_dot_width,
-            pos: IVec2::new(8, canvas_dot_height - 8 * 3),
-            pre_pos: IVec2::new(8, canvas_dot_height - 8 * 3),
+            pos: IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3),
+            pre_pos: IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3),
             const_max_explosion_cnt: 160,
             explosion_cnt: None,
             life: 3,
             sprite,
             explosion_sprite: [explosion_sprite1, explosion_sprite2],
         }
+    }
+    pub fn reset_all(&mut self) {
+        self.reset_stage();
+        self.life = 3;
+    }
+    pub fn reset_stage(&mut self) {
+        self.pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
+        self.pre_pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
+        self.explosion_cnt = None;
     }
     pub fn update(&mut self, dot_map: &mut DotMap) {
         self.pre_pos = self.pos;
@@ -208,7 +221,7 @@ impl Player {
             // 左に移動
             self.pos.x -= 1;
         }
-        if self.pos.x + self.width < self.canvas_dot_width - 7
+        if self.pos.x + self.width < canvas::DOT_WIDTH - 7
             && (is_key_down(KeyCode::D) || is_key_down(KeyCode::Right))
         {
             // 右に移動

@@ -1,10 +1,8 @@
-use crate::{array_sprite::ArraySprite, dot_map::DotMap, player::Player};
+use crate::array_sprite::ArraySprite;
+use crate::canvas;
+use crate::dot_map::DotMap;
+use crate::player::Player;
 use macroquad::prelude::*;
-
-// 1文字8ピクセル分がいくつ入るか
-const CHAR_HEIGHT: i32 = 26;
-// ドット単位の大きさ
-const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
 
 enum BulletType {
     Squiggly, // ジグザグ型
@@ -75,9 +73,9 @@ impl Bullet {
             BulletType::Rolling => self.update_rolling_sprite(self.pos.y),
         }
         // 赤線に着弾
-        if DOT_HEIGHT - 1 <= self.pos.y + 7 {
+        if canvas::DOT_HEIGHT - 1 <= self.pos.y + 7 {
             // はみださないようにする
-            self.pos.y = DOT_HEIGHT - 8;
+            self.pos.y = canvas::DOT_HEIGHT - 8;
             self.pos.x -= 3;
             self.create_explosion_effect(dot_map);
             return;
@@ -85,7 +83,9 @@ impl Bullet {
         // 何かに衝突した場合
         if self.collision(dot_map) {
             // プレイヤーのいる高さの範囲内に弾が入っている
-            if DOT_HEIGHT - 8 * 3 < self.pos.y + 8 && self.pos.y < DOT_HEIGHT - 8 * 2 {
+            if canvas::DOT_HEIGHT - 8 * 3 < self.pos.y + 8
+                && self.pos.y < canvas::DOT_HEIGHT - 8 * 2
+            {
                 // プレイヤーが爆発中でなければ
                 if player.explosion_cnt == None {
                     // プレイヤーを破壊する
@@ -333,6 +333,8 @@ pub struct Alien {
     move_delta: IVec2,
     // エイリアンの生存状態
     live: Vec<bool>,
+    // 生きているエイリアンの数
+    pub live_num: i32,
 }
 
 impl Alien {
@@ -369,17 +371,22 @@ impl Alien {
             i_cursor_alien: 0,
             move_delta: IVec2::new(2, 0),
             live: vec![true; 55],
+            live_num: 55,
         }
     }
     // エイリアンを初期化する
-    pub fn init_alien(&mut self) {
+    pub fn reset(&mut self) {
         self.ref_alien_pos = IVec2::new(24, 12 * 8);
         self.pre_ref_alien_pos = self.ref_alien_pos;
         self.live = vec![true; 55];
+        self.live_num = 55;
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player_exploding: bool) {
         // プレイヤーが爆発中はエイリアンはすべて停止させる
         if player_exploding {
+            return;
+        }
+        if self.live_num <= 0 {
             return;
         }
 
@@ -426,6 +433,10 @@ impl Alien {
             self.ref_alien_pos += self.move_delta;
         }
     }
+    // 一番下のエイリアンがプレイヤーの高さまで侵攻したら真を返す
+    pub fn invaded(&self) -> bool {
+        canvas::DOT_HEIGHT - 24 <= self.index2pos(self.i_cursor_alien).y
+    }
     // 何かの物体が両側の折り返し地点に到達していたら真を返す
     fn check_bump_side(&self, dot_map: &DotMap) -> bool {
         // 判定する壁の高さはUFOの下からプレイヤーの上まで
@@ -449,6 +460,7 @@ impl Alien {
 
         // 爆発エフェクト描画
         self.explosion.create_effect(dot_map, alien_pos);
+        self.live_num -= 1;
     }
     // プレイヤーの弾の座標を引数として、エイリアンに当たった場合はそのエイリアンのインデックス番号を返す
     pub fn pos2index(&self, mut pos: IVec2) -> Option<usize> {
