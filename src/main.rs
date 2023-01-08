@@ -1,4 +1,5 @@
 use alien::Alien;
+use canvas::{ALL_DOT_WIDTH, SCALE};
 use dot_map::DotMap;
 use macroquad::prelude::*;
 use player::{Bullet, Player};
@@ -13,6 +14,8 @@ mod dot_map;
 mod player;
 mod sprite;
 mod ufo;
+
+const ALL_PIXEL_WIDTH: i32 = ALL_DOT_WIDTH * SCALE;
 
 #[derive(PartialEq)]
 enum Scene {
@@ -82,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 真の場合、画面全体を赤色にする
     let mut player_exploding = false;
-
+    // 起動直後はタイトル画面から始める
     let mut scene = Scene::Title;
     loop {
         match scene {
@@ -90,6 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if is_key_pressed(KeyCode::Enter) {
                     scene = Scene::Play;
                 }
+                draw_title();
             }
             Scene::Play => {
                 // Escキーが押されていたらポーズ
@@ -180,13 +184,78 @@ async fn main() -> Result<(), Box<dyn Error>> {
             draw_score(player_bullet.score, player_exploding);
             // 残機表示
             bottom.draw(player.life, player_exploding, canvas::SCALE);
+
+            if scene == Scene::Pause {
+                draw_pause_message();
+            }
         }
         next_frame().await
     }
 }
 
+fn draw_title() {
+    let text = "Invader";
+    let font_size = 120.;
+    let str_size = measure_text(text, None, font_size as _, 1.0);
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        180.,
+        font_size,
+        RED,
+    );
+    let text = "Press Enter";
+    let font_size = 60.;
+    let str_size = measure_text(text, None, font_size as _, 1.0);
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        270.,
+        font_size,
+        RED,
+    );
+}
+
+fn draw_pause_message() {
+    let text = "Pause";
+    let font_size = 120.;
+    let str_size = measure_text(text, None, font_size as _, 1.0);
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        150.,
+        font_size,
+        RED,
+    );
+    let text = "Press Escape key";
+    let font_size = 60.;
+    let str_size = measure_text(text, None, font_size as _, 1.0);
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        240.,
+        font_size,
+        RED,
+    );
+    let text = "to resume game";
+    let font_size = 60.;
+    let str_size = measure_text(text, None, font_size as _, 1.0);
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        290.,
+        font_size,
+        RED,
+    );
+}
+
 // 上に獲得得点を表示
-pub fn draw_score(score: i32, player_exploding: bool) {
+fn draw_score(score: i32, player_exploding: bool) {
     let text = &format!("{:0>5}", score);
     let font_size = (14 * canvas::SCALE) as f32;
     // プレイヤーの爆発中は赤色にする
