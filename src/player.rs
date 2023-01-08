@@ -155,7 +155,8 @@ pub struct Player {
     pre_pos: IVec2,                 // 前回描画時の位置
     const_max_explosion_cnt: i32,   // 撃破されてから再出撃までのカウント数(定数)
     pub explosion_cnt: Option<i32>, // Some(再出撃までの残りカウント)
-    sprite: Vec<u8>,                // 左側から縦8ピクセルずつを8bitのベクタで表す
+    pub life: i32,
+    sprite: Vec<u8>, // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: [Vec<u8>; 2],
 }
 impl Player {
@@ -171,8 +172,9 @@ impl Player {
             canvas_dot_width,
             pos: IVec2::new(8, canvas_dot_height - 8 * 3),
             pre_pos: IVec2::new(8, canvas_dot_height - 8 * 3),
-            const_max_explosion_cnt: 130,
+            const_max_explosion_cnt: 160,
             explosion_cnt: None,
+            life: 3,
             sprite,
             explosion_sprite: [explosion_sprite1, explosion_sprite2],
         }
@@ -193,6 +195,7 @@ impl Player {
                 // 一定時間経過したら復活する
                 self.explosion_cnt = None;
                 self.pos.x = 8;
+                self.life -= 1;
                 return;
             }
             // カウントを進める

@@ -66,7 +66,7 @@ fn rgba2texture(rgba: Vec<u8>) -> Texture2D {
     texture
 }
 
-enum Color {
+pub enum Color {
     Red,       // 赤色
     Purple,    // 紫色
     BLUE,      // 青色
@@ -75,7 +75,7 @@ enum Color {
     Yellow,    // 黄色
 }
 // 指定した色に対応するrgbaの値を返す
-fn set_color(color: Color) -> [u8; 4] {
+pub fn set_color(color: Color) -> [u8; 4] {
     match color {
         Color::Red => [210, 0, 0, 255],          // 赤色
         Color::Purple => [220, 20, 230, 255],    // 紫色

@@ -7,6 +7,7 @@ use ufo::Ufo;
 
 mod alien;
 mod array_sprite;
+mod bottom_area;
 mod dot_map;
 mod player;
 mod sprite;
@@ -20,9 +21,9 @@ const DOT_WIDTH: i32 = 8 * CHAR_WIDTH;
 const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
 // 最終的に表示されるディスプレイの大きさ
 // 幅は変わらない
-const DISPLAY_DOT_WIDTH: i32 = DOT_WIDTH;
+const ALL_DOT_WIDTH: i32 = DOT_WIDTH;
 // 上のスコア表示用の4文字分 + 下の残機表示用の1文字分を加える
-const DISPLAY_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
+const ALL_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
 // 1ドットを何ピクセル四方で表示するか(pixel / dot)
 const SCALE: i32 = 3;
 
@@ -51,10 +52,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let alien_bullet_explosion_data = sprite::ret_dot_data("alien_bullet_explosion");
 
     // 各構造体初期化
+    let player_sprite = player_data.create_dot_map();
+    // 画面下部
+    let bottom = bottom_area::BottomArea::new(&player_sprite);
     let mut player = Player::new(
         DOT_WIDTH,
         DOT_HEIGHT,
-        player_data.create_dot_map(),
+        player_sprite,
         player_explosion_1_data.create_dot_map(),
         player_explosion_2_data.create_dot_map(),
     );
@@ -143,7 +147,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             },
         );
+        // 得点表示
         draw_score(bullet.score, player_exploding);
+        // 残機表示
+        bottom.draw(player.life, player_exploding, SCALE);
+
         next_frame().await
     }
 }
@@ -172,8 +180,8 @@ pub fn draw_score(score: i32, player_exploding: bool) {
 fn window_conf() -> Conf {
     Conf {
         window_title: "invader-macroquad".to_owned(),
-        window_width: DISPLAY_DOT_WIDTH * SCALE,
-        window_height: DISPLAY_DOT_HEIGHT * SCALE,
+        window_width: ALL_DOT_WIDTH * SCALE,
+        window_height: ALL_DOT_HEIGHT * SCALE,
         ..Default::default()
     }
 }
