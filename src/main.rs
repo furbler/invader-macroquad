@@ -96,13 +96,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // ポーズ
     let mut pause = false;
-    // 真の場合、画面全体が赤色になる
+    // 真の場合、画面全体を赤色にする
     let mut player_exploding = false;
 
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
-
         let pause_key_press = is_key_pressed(KeyCode::Escape);
         // 非ポーズ時にポーズキーが押された場合
         if pause_key_press && !pause {
@@ -117,14 +116,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 }
             } else {
                 // 更新処理
-                player_exploding = player.update(&mut map);
+                player.update(&mut map);
+                player_exploding = if player.explosion_cnt == None {
+                    false
+                } else {
+                    true
+                };
+
                 bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
                 ufo.update(&mut map, bullet.fire_cnt);
                 alien.update(&mut map, player_exploding);
                 alien_bullets.update(&mut map, &mut player, &mut alien);
             }
         }
-
         let game_texture = map.dot_map2texture(player_exploding);
         draw_texture_ex(
             game_texture,
@@ -139,8 +143,29 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             },
         );
+        draw_score(bullet.score, player_exploding);
         next_frame().await
     }
+}
+
+// 上に獲得得点を表示
+pub fn draw_score(score: i32, player_exploding: bool) {
+    let text = &format!("{:0>5}", score);
+    let font_size = (14 * SCALE) as f32;
+    // プレイヤーの爆発中は赤色にする
+    let color = if player_exploding {
+        Color::new(0.82, 0., 0., 1.00)
+    } else {
+        Color::new(0.9, 0.9, 0.9, 1.00)
+    };
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (24 * SCALE) as f32,
+        (32 * SCALE) as f32,
+        font_size,
+        color,
+    );
 }
 
 // ウィンドウサイズを指定

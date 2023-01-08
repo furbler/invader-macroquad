@@ -13,7 +13,7 @@ pub struct Bullet {
     pub fire_cnt: i32,           // ステージ開始からの累計射撃数
     sprite: Vec<u8>,             // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: Vec<u8>,   // 爆発画像
-    score: i32,                  // 獲得点数
+    pub score: i32,              // 獲得点数
 }
 
 impl Bullet {
@@ -177,8 +177,7 @@ impl Player {
             explosion_sprite: [explosion_sprite1, explosion_sprite2],
         }
     }
-    // プレイヤーが爆発中は真を返す
-    pub fn update(&mut self, dot_map: &mut DotMap) -> bool {
+    pub fn update(&mut self, dot_map: &mut DotMap) {
         self.pre_pos = self.pos;
         // 撃破後、復活前
         if let Some(cnt) = self.explosion_cnt {
@@ -194,11 +193,11 @@ impl Player {
                 // 一定時間経過したら復活する
                 self.explosion_cnt = None;
                 self.pos.x = 8;
-                return false;
+                return;
             }
             // カウントを進める
             self.explosion_cnt = Some(cnt + 1);
-            return true;
+            return;
         }
 
         // プレイヤー移動範囲制限
@@ -213,7 +212,6 @@ impl Player {
             self.pos.x += 1;
         }
         self.draw(dot_map);
-        false
     }
     // プレイヤーをドットマップに描画(縦方向のバイト境界はまたがない)
     fn draw(&mut self, dot_map: &mut DotMap) {
