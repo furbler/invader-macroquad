@@ -85,6 +85,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 真の場合、画面全体を赤色にする
     let mut player_exploding = false;
+    // ステージの面数
+    let mut stage = 1;
     // 起動直後はタイトル画面から始める
     let mut scene = Scene::Title;
     loop {
@@ -117,16 +119,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
                         }
                     }
-                    alien.reset();
+                    alien.reset(stage);
                     ufo.reset();
                 }
                 // ゲーム開始時限定の処理
                 if reset_all {
+                    stage = 1;
                     player.reset_all();
                     player_bullet.reset_all();
                 }
                 // ステージ開始時限定の処理
                 if reset_stage {
+                    stage += 1;
                     player.reset_stage();
                     player_bullet.reset_stage();
                 }
@@ -153,7 +157,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 // プレイヤーの残機が0またはエイリアンがプレイヤーの高さまで侵攻したら
                 if player.life <= 0 || alien.invaded() {
                     // ゲームオーバー
+                    // 次回ゲーム開始時に初期化
                     reset_all = true;
+                    // タイトル画面へ戻る
+                    scene = Scene::Title;
                 }
             }
             Scene::Pause => {

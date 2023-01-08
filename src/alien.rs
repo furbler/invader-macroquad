@@ -335,6 +335,8 @@ pub struct Alien {
     live: Vec<bool>,
     // 生きているエイリアンの数
     pub live_num: i32,
+    // ステージ2から9までのリファレンスエイリアンの位置
+    table_init_pos_y: Vec<i32>,
 }
 
 impl Alien {
@@ -358,6 +360,13 @@ impl Alien {
         sprite_list.push(middle_sprite1);
         sprite_list.push(high_sprite0);
         sprite_list.push(high_sprite1);
+        let table_init_pos_y: Vec<i32> = vec![88, 72, 64, 64, 64, 56, 56, 56]
+            .iter()
+            .map(|y| canvas::DOT_HEIGHT - y)
+            .collect();
+        if table_init_pos_y.len() != 8 {
+            panic!("エイリアンの初期位置表の要素数は8にしてください。");
+        }
         Alien {
             ref_alien_pos: IVec2::new(0, 0),
             pre_ref_alien_pos: IVec2::new(0, 0),
@@ -372,14 +381,21 @@ impl Alien {
             move_delta: IVec2::new(2, 0),
             live: vec![true; 55],
             live_num: 55,
+            table_init_pos_y,
         }
     }
     // エイリアンを初期化する
-    pub fn reset(&mut self) {
-        self.ref_alien_pos = IVec2::new(24, 12 * 8);
-        self.pre_ref_alien_pos = self.ref_alien_pos;
+    pub fn reset(&mut self, stage: usize) {
         self.live = vec![true; 55];
         self.live_num = 55;
+        // ステージ数によって初期位置が決まる
+        self.ref_alien_pos.x = 24;
+        self.ref_alien_pos.y = if 1 < stage {
+            self.table_init_pos_y[(stage - 2) % 8]
+        } else {
+            canvas::DOT_HEIGHT - 112
+        };
+        self.pre_ref_alien_pos = self.ref_alien_pos;
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player_exploding: bool) {
         // プレイヤーが爆発中はエイリアンはすべて停止させる
