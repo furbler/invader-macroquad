@@ -150,6 +150,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             Scene::ResetStage => {
+                // ゲーム開始、ステージ開始時共通
                 scene = Scene::Play;
                 // すべて消す
                 map.all_clear();
@@ -166,6 +167,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
                 alien.reset(stage);
+                alien_bullets.reset();
                 ufo.reset();
             }
             Scene::LaunchGame(cnt) => {

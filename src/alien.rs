@@ -201,6 +201,8 @@ pub struct BulletManage {
     reload_cnt: i32,
     // 弾の移動速度(移動量)
     speed: i32,
+    // 射撃禁止状態の残りカウント
+    ban_fire_cnt: Option<i32>,
 }
 impl BulletManage {
     pub fn new(explosion_sprite: Vec<u8>) -> Self {
@@ -221,12 +223,32 @@ impl BulletManage {
             },
             reload_cnt: (48. * 1.5) as i32, // 0x30 * 1.5
             speed: 1,
+            ban_fire_cnt: None,
+        }
+    }
+    pub fn reset(&mut self) {
+        // 開始から一定時間は発射しない
+        self.ban_fire_cnt = Some(120);
+        for b in self.bullets.iter_mut() {
+            b.live = false;
         }
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player: &mut Player, alien: &Alien) {
-        // プレイヤーが爆発中は発射しない
-        if player.explosion_cnt == None {
-            self.which_fire(player, alien);
+        if let Some(cnt) = self.ban_fire_cnt {
+            if cnt < 0 {
+                self.ban_fire_cnt = None;
+            } else {
+                self.ban_fire_cnt = Some(cnt - 1);
+            }
+        } else {
+            // プレイヤーが爆発していたら
+            if let Some(cnt) = player.explosion_cnt {
+                // プレイヤーの爆発が終わってから一定時間は発射しない
+                self.ban_fire_cnt = Some(cnt + 80);
+            } else {
+                // プレイヤーが爆発中でなければ発射処理
+                self.which_fire(player, alien);
+            }
         }
         for i in 0..self.bullets.len() {
             self.bullets[i].update(dot_map, player);
