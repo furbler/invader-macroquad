@@ -22,6 +22,10 @@ enum Scene {
     Title,
     Play,
     Pause,
+    LaunchGame(i32),
+    LaunchStage(i32),
+    ResetStage,
+    Gameover(i32),
 }
 
 #[macroquad::main(window_conf)]
@@ -78,11 +82,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     let mut alien_bullets = alien::BulletManage::new(alien_bullet_explosion_data.create_dot_map());
 
-    // スコア、残機などすべて初期化する
-    let mut reset_all = true;
-    // ステージが進むときの初期化
-    let mut reset_stage = false;
-
     // 真の場合、画面全体を赤色にする
     let mut player_exploding = false;
     // ステージの面数
@@ -90,11 +89,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // 起動直後はタイトル画面から始める
     let mut scene = Scene::Title;
     loop {
+        // 画面全体を背景色(黒)クリア
+        clear_background(BLACK);
+        let game_texture = map.dot_map2texture(player_exploding);
+        draw_texture_ex(
+            game_texture,
+            0.,
+            (4 * 8 * canvas::SCALE) as f32,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(
+                    (canvas::DOT_WIDTH * canvas::SCALE) as f32,
+                    (canvas::DOT_HEIGHT * canvas::SCALE) as f32,
+                )),
+                ..Default::default()
+            },
+        );
+        // 得点表示
+        draw_score(player_bullet.score, player_exploding);
+        // 残機表示
+        bottom.draw(player.life, player_exploding, canvas::SCALE);
+
         match scene {
             Scene::Title => {
                 if is_key_pressed(KeyCode::Enter) {
-                    scene = Scene::Play;
+                    scene = Scene::LaunchGame(60);
+                    // すべて消す
+                    map.all_clear();
                 }
+                // 画面全体を背景色(黒)クリア
+                clear_background(BLACK);
                 draw_title();
             }
             Scene::Play => {
@@ -102,41 +126,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if is_key_pressed(KeyCode::Escape) {
                     scene = Scene::Pause;
                 }
-
-                // ゲーム開始時とステージ開始時共通の処理
-                if reset_all || reset_stage {
-                    // すべて消す
-                    map.all_clear();
-                    // プレイヤーの下の横線
-                    map.draw_holizon_line(canvas::DOT_HEIGHT - 1);
-                    // シールド配置
-                    for i in 0..4 {
-                        let gap = (shield_data.width as usize + 23) * i;
-                        for dx in 0..shield_data.width as usize {
-                            map.map[20][gap + 33 + dx] = shield[dx];
-                        }
-                        for dx in 0..shield_data.width as usize {
-                            map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
-                        }
-                    }
-                    alien.reset(stage);
-                    ufo.reset();
-                }
-                // ゲーム開始時限定の処理
-                if reset_all {
-                    stage = 1;
-                    player.reset_all();
-                    player_bullet.reset_all();
-                }
-                // ステージ開始時限定の処理
-                if reset_stage {
-                    stage += 1;
-                    player.reset_stage();
-                    player_bullet.reset_stage();
-                }
-                reset_all = false;
-                reset_stage = false;
-
                 // 更新処理
                 player.update(&mut map);
                 player_exploding = if player.explosion_cnt == None {
@@ -152,47 +141,71 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 // エイリアンが全滅したら
                 if alien.live_num <= 0 {
                     // 次のステージへ進む
-                    reset_stage = true;
+                    scene = Scene::LaunchStage(120);
                 }
                 // プレイヤーの残機が0またはエイリアンがプレイヤーの高さまで侵攻したら
                 if player.life <= 0 || alien.invaded() {
                     // ゲームオーバー
-                    // 次回ゲーム開始時に初期化
-                    reset_all = true;
-                    // タイトル画面へ戻る
-                    scene = Scene::Title;
+                    scene = Scene::Gameover(120);
                 }
+            }
+            Scene::ResetStage => {
+                scene = Scene::Play;
+                // すべて消す
+                map.all_clear();
+                // プレイヤーの下の横線
+                map.draw_holizon_line(canvas::DOT_HEIGHT - 1);
+                // シールド配置
+                for i in 0..4 {
+                    let gap = (shield_data.width as usize + 23) * i;
+                    for dx in 0..shield_data.width as usize {
+                        map.map[20][gap + 33 + dx] = shield[dx];
+                    }
+                    for dx in 0..shield_data.width as usize {
+                        map.map[21][gap + 33 + dx] = shield[shield_data.width as usize + dx];
+                    }
+                }
+                alien.reset(stage);
+                ufo.reset();
+            }
+            Scene::LaunchGame(cnt) => {
+                // 一定時間経過したらゲーム開始
+                if cnt < 0 {
+                    scene = Scene::ResetStage;
+
+                    stage = 1;
+                    player.reset_all();
+                    player_bullet.reset_all();
+                } else {
+                    scene = Scene::LaunchGame(cnt - 1);
+                }
+            }
+            Scene::LaunchStage(cnt) => {
+                // 一定時間経過したら次のステージ開始
+                if cnt < 0 {
+                    scene = Scene::ResetStage;
+
+                    stage += 1;
+                    player.reset_stage();
+                    player_bullet.reset_stage();
+                } else {
+                    scene = Scene::LaunchStage(cnt - 1);
+                }
+            }
+            Scene::Gameover(cnt) => {
+                // 一定時間経過したらタイトル画面に戻る
+                if cnt < 0 {
+                    scene = Scene::Title;
+                } else {
+                    scene = Scene::Gameover(cnt - 1);
+                }
+                draw_gameover_message();
             }
             Scene::Pause => {
                 // Escキーが押されていたらポーズ解除
                 if is_key_pressed(KeyCode::Escape) {
                     scene = Scene::Play;
                 }
-            }
-        }
-        if scene == Scene::Pause || scene == Scene::Play {
-            // 画面全体を背景色(黒)クリア
-            clear_background(BLACK);
-            let game_texture = map.dot_map2texture(player_exploding);
-            draw_texture_ex(
-                game_texture,
-                0.,
-                (4 * 8 * canvas::SCALE) as f32,
-                WHITE,
-                DrawTextureParams {
-                    dest_size: Some(Vec2::new(
-                        (canvas::DOT_WIDTH * canvas::SCALE) as f32,
-                        (canvas::DOT_HEIGHT * canvas::SCALE) as f32,
-                    )),
-                    ..Default::default()
-                },
-            );
-            // 得点表示
-            draw_score(player_bullet.score, player_exploding);
-            // 残機表示
-            bottom.draw(player.life, player_exploding, canvas::SCALE);
-
-            if scene == Scene::Pause {
                 draw_pause_message();
             }
         }
@@ -278,6 +291,20 @@ fn draw_score(score: i32, player_exploding: bool) {
         (32 * canvas::SCALE) as f32,
         font_size,
         color,
+    );
+}
+// ゲームオーバー表示
+fn draw_gameover_message() {
+    let text = "Game over";
+    let font_size = 120.;
+    let str_size = measure_text(text, None, font_size as _, 1.0);
+    // 指定座標は文字の左下
+    draw_text(
+        text,
+        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        190.,
+        font_size,
+        RED,
     );
 }
 

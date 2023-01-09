@@ -388,6 +388,10 @@ impl Alien {
     pub fn reset(&mut self, stage: usize) {
         self.live = vec![true; 55];
         self.live_num = 55;
+        self.show_sprite = true;
+        self.i_cursor_alien = 0;
+        self.move_delta = IVec2::new(2, 0);
+
         // ステージ数によって初期位置が決まる
         self.ref_alien_pos.x = 24;
         self.ref_alien_pos.y = if 1 < stage {
