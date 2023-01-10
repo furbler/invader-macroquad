@@ -184,9 +184,16 @@ pub struct Player {
     pub life: i32,
     sprite: Vec<u8>, // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: [Vec<u8>; 2],
+    se: Sound,
+    se_volume: f32, // 発射音の音量(0〜1)
 }
 impl Player {
-    pub fn new(sprite: Vec<u8>, explosion_sprite1: Vec<u8>, explosion_sprite2: Vec<u8>) -> Self {
+    pub fn new(
+        sprite: Vec<u8>,
+        explosion_sprite1: Vec<u8>,
+        explosion_sprite2: Vec<u8>,
+        se: Sound,
+    ) -> Self {
         Player {
             width: sprite.len() as i32,
             pos: IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3),
@@ -196,6 +203,8 @@ impl Player {
             life: 3,
             sprite,
             explosion_sprite: [explosion_sprite1, explosion_sprite2],
+            se,
+            se_volume: 0.3,
         }
     }
     pub fn reset_all(&mut self) {
@@ -206,6 +215,9 @@ impl Player {
         self.pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
         self.pre_pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
         self.explosion_cnt = None;
+    }
+    pub fn set_se_volume(&mut self, volume: i32) {
+        self.se_volume = (volume as f32) / 100.;
     }
     pub fn update(&mut self, dot_map: &mut DotMap) {
         self.pre_pos = self.pos;
@@ -257,6 +269,14 @@ impl Player {
     pub fn remove(&mut self, dot_map: &mut DotMap) {
         self.explosion_cnt = Some(0);
         self.erase(dot_map, self.pos);
+        // 爆発音再生
+        play_sound(
+            self.se,
+            PlaySoundParams {
+                looped: false,
+                volume: self.se_volume,
+            },
+        );
     }
 }
 

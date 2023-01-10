@@ -2,6 +2,8 @@ use crate::array_sprite::ArraySprite;
 use crate::canvas;
 use crate::dot_map::DotMap;
 use crate::player::Player;
+use macroquad::audio::Sound;
+use macroquad::audio::*;
 use macroquad::prelude::*;
 
 enum BulletType {
@@ -359,6 +361,10 @@ pub struct Alien {
     pub live_num: i32,
     // ステージ2から9までのリファレンスエイリアンの位置
     table_init_pos_y: Vec<i32>,
+    se: Vec<Sound>,
+    se_volume: f32,
+    se_index: usize,
+    explosion_se: Sound,
 }
 
 impl Alien {
@@ -374,6 +380,8 @@ impl Alien {
         high_sprite1: Vec<u8>,
         // 爆発エフェクトのスプライト
         explosion_sprite: Vec<u8>,
+        se: Vec<Sound>,
+        explosion_se: Sound,
     ) -> Self {
         let mut sprite_list = Vec::new();
         sprite_list.push(low_sprite0);
@@ -404,7 +412,14 @@ impl Alien {
             live: vec![true; 55],
             live_num: 55,
             table_init_pos_y,
+            se,
+            se_volume: 0.3,
+            se_index: 0,
+            explosion_se,
         }
+    }
+    pub fn set_se_volume(&mut self, volume: i32) {
+        self.se_volume = (volume as f32) / 100.;
     }
     // エイリアンを初期化する
     pub fn reset(&mut self, stage: usize) {
@@ -413,6 +428,7 @@ impl Alien {
         self.show_sprite = true;
         self.i_cursor_alien = 0;
         self.move_delta = IVec2::new(2, 0);
+        self.se_index = 0;
 
         // ステージ数によって初期位置が決まる
         self.ref_alien_pos.x = 24;
@@ -473,6 +489,16 @@ impl Alien {
             self.pre_ref_alien_pos = self.ref_alien_pos;
             // リファレンスエイリアンを移動させる
             self.ref_alien_pos += self.move_delta;
+
+            // カーソルエイリアン(に一番近い個体)が動いた時に侵攻音再生
+            play_sound(
+                self.se[self.se_index],
+                PlaySoundParams {
+                    looped: false,
+                    volume: self.se_volume,
+                },
+            );
+            self.se_index = (self.se_index + 1) % 4;
         }
     }
     // 一番下のエイリアンがプレイヤーの高さまで侵攻したら真を返す
@@ -503,6 +529,14 @@ impl Alien {
         // 爆発エフェクト描画
         self.explosion.create_effect(dot_map, alien_pos);
         self.live_num -= 1;
+        // 爆発音再生
+        play_sound(
+            self.explosion_se,
+            PlaySoundParams {
+                looped: false,
+                volume: self.se_volume,
+            },
+        );
     }
     // プレイヤーの弾の座標を引数として、エイリアンに当たった場合はそのエイリアンのインデックス番号を返す
     pub fn pos2index(&self, mut pos: IVec2) -> Option<usize> {

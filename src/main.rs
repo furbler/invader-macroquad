@@ -62,6 +62,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         player_sprite,
         player_explosion_1_data.create_dot_map(),
         player_explosion_2_data.create_dot_map(),
+        load_se_file("audio/player_explosion.wav").await,
     );
     let mut player_bullet = Bullet::new(
         bullet_player_data.create_dot_map(),
@@ -74,6 +75,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     let shield = shield_data.create_dot_map();
 
+    let mut alian_se = Vec::new();
+    alian_se.push(load_se_file("audio/fastinvader1.wav").await);
+    alian_se.push(load_se_file("audio/fastinvader2.wav").await);
+    alian_se.push(load_se_file("audio/fastinvader3.wav").await);
+    alian_se.push(load_se_file("audio/fastinvader4.wav").await);
     let mut alien = Alien::new(
         octopus_open_data.create_dot_map(),
         octopus_close_data.create_dot_map(),
@@ -82,6 +88,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         squid_open_data.create_dot_map(),
         squid_close_data.create_dot_map(),
         alien_explosion_data.create_dot_map(),
+        alian_se,
+        load_se_file("audio/invader_killed.wav").await,
     );
     let mut alien_bullets = alien::BulletManage::new(alien_bullet_explosion_data.create_dot_map());
 
@@ -132,6 +140,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     scene = Scene::Pause;
                 }
                 // 更新処理
+                player.set_se_volume(volume);
                 player.update(&mut map);
                 player_exploding = if player.explosion_cnt == None {
                     false
@@ -140,7 +149,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 };
                 player_bullet.set_se_volume(volume);
                 player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
+
                 ufo.update(&mut map, player_bullet.fire_cnt);
+
+                alien.set_se_volume(volume);
                 alien.update(&mut map, player_exploding);
                 alien_bullets.update(&mut map, &mut player, &mut alien);
                 // エイリアンが全滅したら
