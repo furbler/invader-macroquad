@@ -63,7 +63,8 @@ impl Bullet {
     pub fn reset_stage(&mut self) {
         self.live = false;
         self.explosion_effect_show = false;
-        self.ban_fire_cnt = None;
+        // 開始後一定時間は射撃禁止
+        self.ban_fire_cnt = Some(80);
         self.fire_cnt = 0;
     }
     pub fn update(

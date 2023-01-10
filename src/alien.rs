@@ -354,7 +354,7 @@ pub struct Alien {
     // 描画処理対象のインデックス番号
     i_cursor_alien: usize,
     // エイリアンの移動量
-    move_delta: IVec2,
+    speed: IVec2,
     // エイリアンの生存状態
     live: Vec<bool>,
     // 生きているエイリアンの数
@@ -408,7 +408,7 @@ impl Alien {
                 effect_cnt: None,
             },
             i_cursor_alien: 0,
-            move_delta: IVec2::new(2, 0),
+            speed: IVec2::new(2, 0),
             live: vec![true; 55],
             live_num: 55,
             table_init_pos_y,
@@ -427,7 +427,7 @@ impl Alien {
         self.live_num = 55;
         self.show_sprite = true;
         self.i_cursor_alien = 0;
-        self.move_delta = IVec2::new(2, 0);
+        self.speed = IVec2::new(2, 0);
         self.se_index = 0;
 
         // ステージ数によって初期位置が決まる
@@ -446,6 +446,10 @@ impl Alien {
         }
         if self.live_num <= 0 {
             return;
+        }
+        // エイリアンが最後の1匹のときは速度を上げる
+        if self.live_num == 1 {
+            self.speed.x = if self.speed.x < 0 { -3 } else { 3 }
         }
 
         // カーソルエイリアンの前回描画した移動前の部分を0で消す
@@ -478,17 +482,17 @@ impl Alien {
             }
             // 一巡後、エイリアンのどれかが両側の折り返し地点に到達していたら反転する
             if self.check_bump_side(dot_map) {
-                self.move_delta = IVec2::new(-1 * self.move_delta.x, 8);
+                self.speed = IVec2::new(-1 * self.speed.x, 8);
             } else {
                 // 折り返しが終わったらdyは0にする
-                self.move_delta.y = 0;
+                self.speed.y = 0;
             }
             // 一巡したら描画するスプライトを切り替える
             self.show_sprite = !self.show_sprite;
             // 移動前のリファレンスエイリアンの座標を保存する
             self.pre_ref_alien_pos = self.ref_alien_pos;
             // リファレンスエイリアンを移動させる
-            self.ref_alien_pos += self.move_delta;
+            self.ref_alien_pos += self.speed;
 
             // カーソルエイリアン(に一番近い個体)が動いた時に侵攻音再生
             play_sound(
