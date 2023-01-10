@@ -1,5 +1,6 @@
 use crate::canvas;
 use crate::{array_sprite::ArraySprite, dot_map::DotMap};
+use macroquad::audio::*;
 use macroquad::prelude::*;
 use macroquad::time;
 
@@ -48,10 +49,18 @@ pub struct Ufo {
     score_table: [i32; 15], // プレイヤーの発射数に対応した獲得得点表
     sprite: Vec<u8>,        // 左側から縦8ピクセルずつを8bitのベクタで表す
     pub explosion: Explosion,
+    se_flying: Sound,
+    se_explosion: Sound,
+    se_volume: f32, // 発射音の音量(0〜1)
 }
 
 impl Ufo {
-    pub fn new(sprite: Vec<u8>, explosion_sprite: Vec<u8>) -> Self {
+    pub fn new(
+        sprite: Vec<u8>,
+        explosion_sprite: Vec<u8>,
+        se_flying: Sound,
+        se_explosion: Sound,
+    ) -> Self {
         Ufo {
             width: sprite.len() as i32,
             pos: IVec2::new(0, 8),
@@ -68,7 +77,14 @@ impl Ufo {
                 show_cnt: None,
                 sprite: explosion_sprite,
             },
+            se_flying,
+            se_explosion,
+            se_volume: 0.2,
         }
+    }
+    pub fn set_se_volume(&mut self, volume: i32) {
+        // UFOの音源が大きいので少し下げる
+        self.se_volume = (volume as f32) / 100. * 0.3;
     }
     pub fn reset(&mut self) {
         self.live = false;
@@ -83,6 +99,8 @@ impl Ufo {
 
         // 前回描画した部分を消す
         self.erase(dot_map, self.pre_pos);
+        // 飛行音を止める
+        stop_sound(self.se_flying);
     }
     // プレイヤーの弾が当たった場合
     pub fn hit_player_bullet(&mut self, dot_map: &mut DotMap, fire_cnt: i32) -> i32 {
@@ -90,6 +108,15 @@ impl Ufo {
         self.remove(dot_map);
         // 爆発エフェクト描画
         self.explosion.create_effect(dot_map, self.pos);
+
+        // 爆発音再生
+        play_sound(
+            self.se_explosion,
+            PlaySoundParams {
+                looped: false,
+                volume: self.se_volume,
+            },
+        );
 
         self.score_table[(fire_cnt - 1) as usize % 15]
     }
@@ -120,6 +147,15 @@ impl Ufo {
                     self.pos.x = 8;
                     self.move_dir = 1;
                 }
+
+                // 飛行音再生開始
+                play_sound(
+                    self.se_flying,
+                    PlaySoundParams {
+                        looped: true,
+                        volume: self.se_volume,
+                    },
+                );
             }
         }
         self.draw(dot_map);

@@ -72,6 +72,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut ufo = Ufo::new(
         ufo_data.create_dot_map(),
         ufo_explosion_data.create_dot_map(),
+        load_se_file("audio/ufo_flying.wav").await,
+        load_se_file("audio/ufo_explosion.wav").await,
     );
     let shield = shield_data.create_dot_map();
 
@@ -150,6 +152,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 player_bullet.set_se_volume(volume);
                 player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
 
+                ufo.set_se_volume(volume);
                 ufo.update(&mut map, player_bullet.fire_cnt);
 
                 alien.set_se_volume(volume);
