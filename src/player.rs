@@ -2,6 +2,7 @@ use crate::alien::Alien;
 use crate::canvas;
 use crate::ufo::Ufo;
 use crate::{array_sprite::ArraySprite, dot_map::DotMap};
+use macroquad::audio::*;
 use macroquad::prelude::*;
 // プレイヤーの弾のスピード
 const PLAYER_BULLET_DELTA: i32 = 4;
@@ -12,13 +13,15 @@ pub struct Bullet {
     explosion_effect_show: bool, // 爆発エフェクトを表示するならば真
     ban_fire_cnt: Option<i32>,   // 射撃禁止状態の残りカウント
     pub fire_cnt: i32,           // ステージ開始からの累計射撃数
+    pub score: i32,              // 獲得点数
     sprite: Vec<u8>,             // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: Vec<u8>,   // 爆発画像
-    pub score: i32,              // 獲得点数
+    se: Sound,
+    se_volume: f32, // 発射音の音量(0〜1)
 }
 
 impl Bullet {
-    pub fn new(sprite: Vec<u8>, explosion_sprite: Vec<u8>) -> Self {
+    pub fn new(sprite: Vec<u8>, explosion_sprite: Vec<u8>, se: Sound) -> Self {
         Bullet {
             pos: IVec2::new(0, 0),
             live: false,
@@ -28,17 +31,30 @@ impl Bullet {
             sprite,
             explosion_sprite,
             score: 0,
+            se,
+            se_volume: 0.3,
         }
+    }
+    pub fn set_se_volume(&mut self, volume: i32) {
+        self.se_volume = (volume as f32) / 100.;
     }
     // 弾を発射
     fn fire(&mut self, x: i32, y: i32) {
-        // 弾が画面上に存在しない場合
-        if !self.live {
-            self.pos = IVec2::new(x, y);
-            self.live = true;
-            self.fire_cnt += 1;
-            self.explosion_effect_show = false;
+        if self.live {
+            return;
         }
+        // 弾が画面上に存在しない場合
+        self.pos = IVec2::new(x, y);
+        self.live = true;
+        self.fire_cnt += 1;
+        self.explosion_effect_show = false;
+        play_sound(
+            self.se,
+            PlaySoundParams {
+                looped: false,
+                volume: self.se_volume,
+            },
+        );
     }
     pub fn reset_all(&mut self) {
         self.reset_stage();

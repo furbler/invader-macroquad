@@ -1,7 +1,10 @@
 use alien::Alien;
-use canvas::{ALL_DOT_WIDTH, SCALE};
 use dot_map::DotMap;
-use macroquad::prelude::*;
+use macroquad::{
+    audio::{load_sound, Sound},
+    prelude::*,
+};
+use pause::draw_pause;
 use player::{Bullet, Player};
 use std::error::Error;
 use ufo::Ufo;
@@ -11,11 +14,10 @@ mod array_sprite;
 mod bottom_area;
 mod canvas;
 mod dot_map;
+mod pause;
 mod player;
 mod sprite;
 mod ufo;
-
-const ALL_PIXEL_WIDTH: i32 = ALL_DOT_WIDTH * SCALE;
 
 #[derive(PartialEq)]
 enum Scene {
@@ -64,6 +66,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut player_bullet = Bullet::new(
         bullet_player_data.create_dot_map(),
         player_bullet_explosion_data.create_dot_map(),
+        load_se_file("audio/shoot.wav").await,
     );
     let mut ufo = Ufo::new(
         ufo_data.create_dot_map(),
@@ -88,6 +91,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut stage = 1;
     // 起動直後はタイトル画面から始める
     let mut scene = Scene::Title;
+    // 全体の音量(0〜100)
+    let mut volume = 30;
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
@@ -113,7 +118,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         match scene {
             Scene::Title => {
                 if is_key_pressed(KeyCode::Enter) {
-                    scene = Scene::LaunchGame(60);
+                    scene = Scene::LaunchGame(10);
                     // すべて消す
                     map.all_clear();
                 }
@@ -133,7 +138,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 } else {
                     true
                 };
-
+                player_bullet.set_se_volume(volume);
                 player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
                 ufo.update(&mut map, player_bullet.fire_cnt);
                 alien.update(&mut map, player_exploding);
@@ -208,7 +213,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if is_key_pressed(KeyCode::Escape) {
                     scene = Scene::Play;
                 }
-                draw_pause_message();
+                volume = draw_pause(volume);
             }
         }
         next_frame().await
@@ -222,7 +227,7 @@ fn draw_title() {
     // 指定座標は文字の左下
     draw_text(
         text,
-        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        screen_width() / 2. - str_size.width / 2.,
         180.,
         font_size,
         RED,
@@ -233,44 +238,8 @@ fn draw_title() {
     // 指定座標は文字の左下
     draw_text(
         text,
-        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        screen_width() / 2. - str_size.width / 2.,
         270.,
-        font_size,
-        RED,
-    );
-}
-
-fn draw_pause_message() {
-    let text = "Pause";
-    let font_size = 120.;
-    let str_size = measure_text(text, None, font_size as _, 1.0);
-    // 指定座標は文字の左下
-    draw_text(
-        text,
-        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
-        150.,
-        font_size,
-        RED,
-    );
-    let text = "Press Escape key";
-    let font_size = 60.;
-    let str_size = measure_text(text, None, font_size as _, 1.0);
-    // 指定座標は文字の左下
-    draw_text(
-        text,
-        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
-        240.,
-        font_size,
-        RED,
-    );
-    let text = "to resume game";
-    let font_size = 60.;
-    let str_size = measure_text(text, None, font_size as _, 1.0);
-    // 指定座標は文字の左下
-    draw_text(
-        text,
-        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
-        290.,
         font_size,
         RED,
     );
@@ -303,11 +272,15 @@ fn draw_gameover_message() {
     // 指定座標は文字の左下
     draw_text(
         text,
-        (ALL_PIXEL_WIDTH / 2) as f32 - str_size.width / 2.,
+        screen_width() / 2. - str_size.width / 2.,
         190.,
         font_size,
         RED,
     );
+}
+
+async fn load_se_file(path: &str) -> Sound {
+    load_sound(path).await.unwrap()
 }
 
 // ウィンドウサイズを指定

@@ -1,3 +1,9 @@
+use macroquad::{
+    prelude::Color,
+    shapes::draw_rectangle,
+    window::{screen_height, screen_width},
+};
+
 // 1文字8ピクセル分がいくつ入るか
 pub const CHAR_WIDTH: i32 = 28;
 pub const CHAR_HEIGHT: i32 = 26;
@@ -11,3 +17,8 @@ pub const ALL_DOT_WIDTH: i32 = DOT_WIDTH;
 pub const ALL_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
 // 1ドットを何ピクセル四方で表示するか(pixel / dot)
 pub const SCALE: i32 = 3;
+
+// 指定した色を画面全体の上にかぶせる(alpha値を指定可能)
+pub fn draw_screen(color: Color) {
+    draw_rectangle(0., 0., screen_width(), screen_height(), color);
+}
