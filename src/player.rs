@@ -134,6 +134,12 @@ impl Bullet {
                 self.fire(player.pos.x + 7, player.pos.y - 8);
             }
         }
+        // スコアボーナス
+        if 1500 <= self.score && !player.life_up {
+            player.life += 1;
+            // 残機が増えるのは1度だけ
+            player.life_up = true;
+        }
         self.draw(dot_map);
     }
 
@@ -183,6 +189,7 @@ pub struct Player {
     pub const_max_explosion_cnt: i32, // 撃破されてから再出撃までのカウント数(定数)
     pub explosion_cnt: Option<i32>,   // Some(再出撃までの残りカウント)
     pub life: i32,
+    life_up: bool,   // スコアボーナスで残機が増加済であれば真
     sprite: Vec<u8>, // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: [Vec<u8>; 2],
     se: Sound,
@@ -202,6 +209,7 @@ impl Player {
             const_max_explosion_cnt: 160,
             explosion_cnt: None,
             life: 3,
+            life_up: false,
             sprite,
             explosion_sprite: [explosion_sprite1, explosion_sprite2],
             se,
@@ -211,6 +219,7 @@ impl Player {
     pub fn reset_all(&mut self) {
         self.reset_stage();
         self.life = 3;
+        self.life_up = false;
     }
     pub fn reset_stage(&mut self) {
         self.pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
