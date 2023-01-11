@@ -453,10 +453,6 @@ impl Alien {
         if self.live_num <= 0 {
             return;
         }
-        // エイリアンが最後の1匹のときは速度を上げる
-        if self.live_num == 1 {
-            self.speed.x = if self.speed.x < 0 { -3 } else { 3 }
-        }
         self.se_interval += 1;
 
         // カーソルエイリアンの前回描画した移動前の部分を0で消す
@@ -488,12 +484,8 @@ impl Alien {
                 return;
             }
             // 一巡後、エイリアンのどれかが両側の折り返し地点に到達していたら反転する
-            if self.check_bump_side(dot_map) {
-                self.speed = IVec2::new(-1 * self.speed.x, 8);
-            } else {
-                // 折り返しが終わったらdyは0にする
-                self.speed.y = 0;
-            }
+            self.check_bump_side(dot_map);
+
             // 一巡したら描画するスプライトを切り替える
             self.show_sprite = !self.show_sprite;
             // 移動前のリファレンスエイリアンの座標を保存する
@@ -520,15 +512,29 @@ impl Alien {
         canvas::DOT_HEIGHT - 24 <= self.index2pos(self.i_cursor_alien).y
     }
     // 何かの物体が両側の折り返し地点に到達していたら真を返す
-    fn check_bump_side(&self, dot_map: &DotMap) -> bool {
+    fn check_bump_side(&mut self, dot_map: &DotMap) {
         // 判定する壁の高さはUFOの下からプレイヤーの上まで
         for char_y in 2..23 {
-            // 左右どちらかの壁のドットに何かが存在したら
-            if dot_map.map[char_y][9] != 0 || dot_map.map[char_y][213] != 0 {
-                return true;
+            // 右の壁のドットに何かが存在したら
+            if dot_map.map[char_y][213] != 0 {
+                self.speed = IVec2::new(-2, 8);
+                return;
             }
         }
-        false
+        for char_y in 2..23 {
+            // 左の壁のドットに何かが存在したら
+            if dot_map.map[char_y][9] != 0 {
+                // エイリアンが最後の1匹のときは速度を上げる
+                self.speed = if self.live_num == 1 {
+                    IVec2::new(3, 8)
+                } else {
+                    IVec2::new(2, 8)
+                };
+                return;
+            }
+        }
+        // 折り返しでなければdyは0にする
+        self.speed.y = 0;
     }
     // インデックス番号で指定されたエイリアンを消す
     pub fn remove(&mut self, dot_map: &mut DotMap, i: usize) {

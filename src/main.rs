@@ -144,11 +144,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 // 更新処理
                 player.set_se_volume(volume);
                 player.update(&mut map);
-                player_exploding = if player.explosion_cnt == None {
-                    false
-                } else {
-                    true
-                };
                 player_bullet.set_se_volume(volume);
                 player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
 
@@ -169,8 +164,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     scene = Scene::Gameover(120);
                     // 音を止める
                     ufo.reset();
-                    player.remove(&mut map);
+                    if alien.invaded() {
+                        // プレイヤーの高さに降りてきた個体を描く
+                        alien.update(&mut map, player_exploding);
+                        // エイリアンに侵攻されていたら爆発を起こす
+                        player.remove(&mut map);
+                    };
                 }
+                // プレイヤーが爆発中は画面全体を赤にする
+                player_exploding = if player.explosion_cnt == None {
+                    false
+                } else {
+                    true
+                };
             }
             Scene::ResetStage => {
                 // ゲーム開始、ステージ開始時共通
