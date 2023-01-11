@@ -223,7 +223,6 @@ impl BulletManage {
                 i: 0,
                 table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10],
             },
-            // reload_cnt: (48. * 1.5) as i32, // 0x30 * 1.5
             reload_cnt: 48, // 0x30 * 1.5
             speed: 1,
             ban_fire_cnt: None,
@@ -307,10 +306,10 @@ impl BulletManage {
     fn set_reload_cnt(&mut self, score: i32) {
         self.reload_cnt = match score {
             0..=200 => 48,
-            201..=1600 => 24,  // 16 x 1.5
-            1601..=3200 => 17, // 11 x 1.5
-            3201..=4800 => 12, // 8 x 1.5
-            4801.. => 11,      // 7 x 1.5
+            201..=1600 => 32,  // 16 x 2
+            1601..=3200 => 22, // 11 x 2
+            3201..=4800 => 16, // 8 x 2
+            4801.. => 14,      // 7 x 2
             _ => 0,
         }
     }
@@ -469,11 +468,12 @@ impl Alien {
         }
         self.se_interval += 1;
 
-        // カーソルエイリアンの前回描画した移動前の部分を0で消す
-        self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
-        // 移動後を描画する
-        self.array_sprite(dot_map);
-        self.explosion.update(dot_map);
+        if self.live[self.i_cursor_alien] {
+            // カーソルエイリアンの前回描画した移動前の部分を0で消す
+            self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
+            // 移動後を描画する
+            self.array_sprite(dot_map);
+        }
 
         // 処理対象カーソルを進める
         self.i_cursor_alien += 1;
@@ -609,7 +609,7 @@ impl Alien {
             return self.column2index(0);
         }
         let mut column = (pos_x - self.ref_alien_pos.x) as usize / 16;
-        if column > 11 {
+        if column > 10 {
             column = 10
         };
         self.column2index(column)
@@ -629,7 +629,7 @@ impl Alien {
     // エイリアンのインデックス番号から座標を返す
     fn index2pos(&self, i: usize) -> IVec2 {
         // リファレンスエイリアンと同期済
-        let ref_pos = if i <= self.i_cursor_alien {
+        let ref_pos = if i < self.i_cursor_alien {
             self.ref_alien_pos
         } else {
             // リファレンスエイリアンとずれている
