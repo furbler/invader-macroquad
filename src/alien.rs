@@ -446,8 +446,9 @@ impl Alien {
         }
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player_exploding: bool) {
-        // プレイヤーが爆発中はエイリアンはすべて停止させる
-        if player_exploding {
+        // プレイヤーまたはエイリアンが爆発中はすべてのエイリアンを停止させる
+        if player_exploding || self.explosion.effect_cnt != None {
+            self.explosion.update(dot_map);
             return;
         }
         if self.live_num <= 0 {
