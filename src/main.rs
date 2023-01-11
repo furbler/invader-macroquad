@@ -152,7 +152,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                 alien.set_se_volume(volume);
                 alien.update(&mut map, player_exploding);
-                alien_bullets.update(&mut map, &mut player, &mut alien);
+                alien_bullets.update(&mut map, &mut player, &mut alien, player_bullet.score);
                 // エイリアンが全滅したら
                 if alien.live_num <= 0 {
                     // 次のステージへ進む

@@ -223,7 +223,8 @@ impl BulletManage {
                 i: 0,
                 table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10],
             },
-            reload_cnt: (48. * 1.5) as i32, // 0x30 * 1.5
+            // reload_cnt: (48. * 1.5) as i32, // 0x30 * 1.5
+            reload_cnt: 48, // 0x30 * 1.5
             speed: 1,
             ban_fire_cnt: None,
         }
@@ -235,7 +236,9 @@ impl BulletManage {
             b.live = false;
         }
     }
-    pub fn update(&mut self, dot_map: &mut DotMap, player: &mut Player, alien: &Alien) {
+    pub fn update(&mut self, dot_map: &mut DotMap, player: &mut Player, alien: &Alien, score: i32) {
+        // 獲得点数に応じて発射頻度を変える
+        self.set_reload_cnt(score);
         if let Some(cnt) = self.ban_fire_cnt {
             if cnt < 0 {
                 self.ban_fire_cnt = None;
@@ -299,6 +302,16 @@ impl BulletManage {
                     self.bullets[seed].fire(alien.index2pos(i), self.speed);
                 }
             }
+        }
+    }
+    fn set_reload_cnt(&mut self, score: i32) {
+        self.reload_cnt = match score {
+            0..=200 => 48,
+            201..=1600 => 24,  // 16 x 1.5
+            1601..=3200 => 17, // 11 x 1.5
+            3201..=4800 => 12, // 8 x 1.5
+            4801.. => 11,      // 7 x 1.5
+            _ => 0,
         }
     }
 }
