@@ -89,6 +89,8 @@ impl Ufo {
     pub fn reset(&mut self) {
         self.live = false;
         self.lapse_time = time::get_time();
+        stop_sound(self.se_flying);
+        stop_sound(self.se_explosion);
     }
     fn remove(&mut self, dot_map: &mut DotMap) {
         self.live = false;

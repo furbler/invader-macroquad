@@ -177,11 +177,11 @@ impl ArraySprite for Bullet {
 }
 
 pub struct Player {
-    width: i32,                     // 描画サイズの幅
-    pub pos: IVec2,                 // 左上位置
-    pre_pos: IVec2,                 // 前回描画時の位置
-    const_max_explosion_cnt: i32,   // 撃破されてから再出撃までのカウント数(定数)
-    pub explosion_cnt: Option<i32>, // Some(再出撃までの残りカウント)
+    width: i32,                       // 描画サイズの幅
+    pub pos: IVec2,                   // 左上位置
+    pre_pos: IVec2,                   // 前回描画時の位置
+    pub const_max_explosion_cnt: i32, // 撃破されてから再出撃までのカウント数(定数)
+    pub explosion_cnt: Option<i32>,   // Some(再出撃までの残りカウント)
     pub life: i32,
     sprite: Vec<u8>, // 左側から縦8ピクセルずつを8bitのベクタで表す
     explosion_sprite: [Vec<u8>; 2],

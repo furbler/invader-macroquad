@@ -167,6 +167,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 if player.life <= 0 || alien.invaded() {
                     // ゲームオーバー
                     scene = Scene::Gameover(120);
+                    // 音を止める
+                    ufo.reset();
+                    player.remove(&mut map);
                 }
             }
             Scene::ResetStage => {
@@ -220,6 +223,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     scene = Scene::Title;
                 } else {
                     scene = Scene::Gameover(cnt - 1);
+                    // プレイヤーを爆発させる
+                    if let Some(cnt) = player.explosion_cnt {
+                        if cnt <= player.const_max_explosion_cnt {
+                            player.update(&mut map);
+                        }
+                    }
                 }
                 draw_gameover_message();
             }

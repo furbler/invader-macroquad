@@ -365,6 +365,7 @@ pub struct Alien {
     se_volume: f32,
     se_index: usize,
     explosion_se: Sound,
+    se_interval: i32,
 }
 
 impl Alien {
@@ -416,6 +417,7 @@ impl Alien {
             se_volume: 0.3,
             se_index: 0,
             explosion_se,
+            se_interval: 0,
         }
     }
     pub fn set_se_volume(&mut self, volume: i32) {
@@ -429,6 +431,7 @@ impl Alien {
         self.i_cursor_alien = 0;
         self.speed = IVec2::new(2, 0);
         self.se_index = 0;
+        self.se_interval = 0;
 
         // ステージ数によって初期位置が決まる
         self.ref_alien_pos.x = 24;
@@ -438,6 +441,9 @@ impl Alien {
             canvas::DOT_HEIGHT - 112
         };
         self.pre_ref_alien_pos = self.ref_alien_pos;
+        for i in 0..self.se.len() {
+            stop_sound(self.se[i]);
+        }
     }
     pub fn update(&mut self, dot_map: &mut DotMap, player_exploding: bool) {
         // プレイヤーが爆発中はエイリアンはすべて停止させる
@@ -451,6 +457,7 @@ impl Alien {
         if self.live_num == 1 {
             self.speed.x = if self.speed.x < 0 { -3 } else { 3 }
         }
+        self.se_interval += 1;
 
         // カーソルエイリアンの前回描画した移動前の部分を0で消す
         self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
@@ -494,15 +501,18 @@ impl Alien {
             // リファレンスエイリアンを移動させる
             self.ref_alien_pos += self.speed;
 
-            // カーソルエイリアン(に一番近い個体)が動いた時に侵攻音再生
-            play_sound(
-                self.se[self.se_index],
-                PlaySoundParams {
-                    looped: false,
-                    volume: self.se_volume,
-                },
-            );
-            self.se_index = (self.se_index + 1) % 4;
+            if self.se_interval > 9 {
+                // カーソルエイリアン(に一番近い個体)が動いた時に侵攻音再生
+                play_sound(
+                    self.se[self.se_index],
+                    PlaySoundParams {
+                        looped: false,
+                        volume: self.se_volume,
+                    },
+                );
+                self.se_index = (self.se_index + 1) % 4;
+                self.se_interval = 0;
+            }
         }
     }
     // 一番下のエイリアンがプレイヤーの高さまで侵攻したら真を返す
