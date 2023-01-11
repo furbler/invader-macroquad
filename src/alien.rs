@@ -83,7 +83,7 @@ impl Bullet {
             return;
         }
         // 何かに衝突した場合
-        if self.collision(dot_map) {
+        if self.is_collide(dot_map) {
             // プレイヤーのいる高さの範囲内に弾が入っている
             if canvas::DOT_HEIGHT - 8 * 3 < self.pos.y + 8
                 && self.pos.y < canvas::DOT_HEIGHT - 8 * 2
@@ -247,8 +247,8 @@ impl BulletManage {
             if let Some(cnt) = player.explosion_cnt {
                 // プレイヤーの爆発が終わってから一定時間は発射しない
                 self.ban_fire_cnt = Some(cnt + 80);
-            } else {
-                // プレイヤーが爆発中でなければ発射処理
+            } else if alien.explosion.effect_cnt == None {
+                // プレイヤーとエイリアンのどちらも爆発中でない場合に発射処理を行う
                 self.which_fire(player, alien);
             }
         }

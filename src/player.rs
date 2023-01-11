@@ -91,36 +91,8 @@ impl Bullet {
                 self.pos.x = self.pos.x - self.explosion_sprite.len() as i32 / 2;
             } else {
                 // 移動後の弾の部分に何か物体が存在したら
-                if self.collision(dot_map) {
-                    // 何かに衝突したので弾を消す
-                    self.live = false;
-                    self.ban_fire_cnt = Some(15);
-                    // 爆発エフェクトを表示する
-                    self.explosion_effect_show = true;
-                    // 衝突したのがUFOだった場合
-                    if self.pos.y / 8 < 2 {
-                        // UFOの爆発エフェクト表示中でなければ
-                        if ufo.explosion.show_cnt == None {
-                            // UFOの撃破時には点数を加算
-                            self.score += ufo.hit_player_bullet(dot_map, self.fire_cnt);
-                        }
-                        // 爆発エフェクトは表示しない
-                        self.explosion_effect_show = false;
-                    } else if self.pos.y <= alien.ref_alien_pos.y + 6 {
-                        // 衝突したのがUFO(の高さ)より下かつ、リファレンスエイリアンより上だった場合のみ
-                        // エイリアンに当たっていた場合
-                        if let Some(i) = alien.pos2index(self.pos) {
-                            // 撃破したエイリアンの点数を追加
-                            self.score += Alien::index2score(i);
-                            alien.remove(dot_map, i);
-                            // 爆発エフェクトは表示しない
-                            self.explosion_effect_show = false;
-                        }
-                    }
-                    // 自身のx座標が爆発エフェクトの中心になるようずらす
-                    self.pos.x = self.pos.x - 5;
-                    // 少し上にずらす
-                    self.pos.y -= 2;
+                if self.is_collide(dot_map) {
+                    self.collided(dot_map, ufo, alien);
                 }
             }
         } else {
@@ -132,6 +104,10 @@ impl Bullet {
                     || is_key_down(KeyCode::Enter))
             {
                 self.fire(player.pos.x + 7, player.pos.y - 8);
+                // プレイヤーの一つ上の行の判定
+                if self.is_collide(dot_map) {
+                    self.collided(dot_map, ufo, alien);
+                }
             }
         }
         // スコアボーナス
@@ -141,6 +117,38 @@ impl Bullet {
             player.life_up = true;
         }
         self.draw(dot_map);
+    }
+
+    fn collided(&mut self, dot_map: &mut DotMap, ufo: &mut Ufo, alien: &mut Alien) {
+        // 何かに衝突したので弾を消す
+        self.live = false;
+        self.ban_fire_cnt = Some(15);
+        // 爆発エフェクトを表示する
+        self.explosion_effect_show = true;
+        // 衝突したのがUFOだった場合
+        if self.pos.y / 8 < 2 {
+            // UFOの爆発エフェクト表示中でなければ
+            if ufo.explosion.show_cnt == None {
+                // UFOの撃破時には点数を加算
+                self.score += ufo.hit_player_bullet(dot_map, self.fire_cnt);
+            }
+            // 爆発エフェクトは表示しない
+            self.explosion_effect_show = false;
+        } else if self.pos.y <= alien.ref_alien_pos.y + 6 {
+            // 衝突したのがUFO(の高さ)より下かつ、リファレンスエイリアンより上だった場合のみ
+            // エイリアンに当たっていた場合
+            if let Some(i) = alien.pos2index(self.pos) {
+                // 撃破したエイリアンの点数を追加
+                self.score += Alien::index2score(i);
+                alien.remove(dot_map, i);
+                // 爆発エフェクトは表示しない
+                self.explosion_effect_show = false;
+            }
+        }
+        // 自身のx座標が爆発エフェクトの中心になるようずらす
+        self.pos.x = self.pos.x - 5;
+        // 少し上にずらす
+        self.pos.y -= 2;
     }
 
     // プレイヤーの弾をドットマップに描画(縦方向のバイト境界をまたぐ可能性有り)

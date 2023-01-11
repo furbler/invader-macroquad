@@ -65,7 +65,7 @@ pub trait ArraySprite {
         }
     }
     // この当たり判定時には移動前の弾の描画は消されていなければならない(残っていると前回の弾と衝突判定することがある)
-    fn collision(&self, dot_map: &mut DotMap) -> bool {
+    fn is_collide(&self, dot_map: &mut DotMap) -> bool {
         let pos = self.pos();
         let sprite = self.sprite();
         let char_y = (pos.y / 8) as usize;
