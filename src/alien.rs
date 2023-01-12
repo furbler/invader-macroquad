@@ -629,7 +629,7 @@ impl Alien {
     // エイリアンのインデックス番号から座標を返す
     fn index2pos(&self, i: usize) -> IVec2 {
         // リファレンスエイリアンと同期済
-        let ref_pos = if i < self.i_cursor_alien {
+        let ref_pos = if i <= self.i_cursor_alien {
             self.ref_alien_pos
         } else {
             // リファレンスエイリアンとずれている
