@@ -7,26 +7,63 @@ use macroquad::time;
 pub struct Explosion {
     pos: IVec2,
     pub show_cnt: Option<i32>, // 生存フラグ(表示残りカウント)
+    score: i32,                // 撃破時のスコア
     sprite: Vec<u8>,           // 左側から縦8ピクセルずつを8bitのベクタで表す
+    sprite_num: Vec<Vec<u8>>,
 }
 
 impl Explosion {
     fn create_effect(&mut self, dot_map: &mut DotMap, pos: IVec2) {
         self.pos = pos;
-        self.show_cnt = Some(20);
+        self.show_cnt = Some(0);
         // 爆発エフェクトを表示
         self.array_shifted_sprite(dot_map);
     }
     fn update_draw(&mut self, dot_map: &mut DotMap) {
         if let Some(cnt) = self.show_cnt {
             // カウント終了
-            if cnt < 0 {
+            if 120 < cnt {
                 // 描画した部分を0で消す
                 self.erase(dot_map, self.pos);
                 self.show_cnt = None;
-            } else {
-                self.show_cnt = Some(cnt - 1);
+                return;
+            } else if 20 < cnt {
+                // 描画した部分を0で消す
+                self.erase(dot_map, self.pos);
+                // スコアを描画
+                self.draw_score(dot_map);
             }
+            self.show_cnt = Some(cnt + 1);
+        }
+    }
+    fn draw_score(&self, dot_map: &mut DotMap) {
+        let i_sprite: Vec<usize>;
+        match self.score {
+            50 => {
+                i_sprite = vec![3, 0];
+            }
+            100 => {
+                i_sprite = vec![1, 0, 0];
+            }
+            150 => {
+                i_sprite = vec![1, 3, 0];
+            }
+            300 => {
+                i_sprite = vec![2, 0, 0];
+            }
+            _ => panic!("UFOの点数が不正です。"),
+        }
+        let mut pos = self.pos;
+        for i in 0..i_sprite.len() {
+            Self::array_sprite_num(dot_map, &self.sprite_num[i_sprite[i]], pos);
+            pos.x += 8;
+        }
+    }
+    // バイト境界をまたがない物体の描画を透過なしで行う(上書き)
+    fn array_sprite_num(dot_map: &mut DotMap, sprite: &Vec<u8>, pos: IVec2) {
+        let char_y = (pos.y / 8) as usize;
+        for dx in 0..sprite.len() {
+            dot_map.map[char_y][pos.x as usize + dx] = sprite[dx];
         }
     }
 }
@@ -60,6 +97,7 @@ impl Ufo {
         explosion_sprite: Vec<u8>,
         se_flying: Sound,
         se_explosion: Sound,
+        num_list: Vec<Vec<u8>>,
     ) -> Self {
         Ufo {
             width: sprite.len() as i32,
@@ -76,6 +114,8 @@ impl Ufo {
                 pos: IVec2::new(0, 0),
                 show_cnt: None,
                 sprite: explosion_sprite,
+                sprite_num: num_list,
+                score: 0,
             },
             se_flying,
             se_explosion,
@@ -120,7 +160,9 @@ impl Ufo {
             },
         );
 
-        self.score_table[(fire_cnt - 1) as usize % 15]
+        let score = self.score_table[(fire_cnt - 1) as usize % 15];
+        self.explosion.score = score;
+        score
     }
     pub fn update(&mut self, dot_map: &mut DotMap, fire_cnt: i32) {
         self.pre_pos = self.pos;
