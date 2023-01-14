@@ -506,7 +506,8 @@ impl Alien {
             self.pre_ref_alien_pos = self.ref_alien_pos;
             // リファレンスエイリアンを移動させる
             self.ref_alien_pos += self.speed;
-
+            // wasmでは再生しない
+            #[cfg(not(target_arch = "wasm32"))]
             if self.se_interval > 9 {
                 // カーソルエイリアン(に一番近い個体)が動いた時に侵攻音再生
                 play_sound(
@@ -564,6 +565,8 @@ impl Alien {
         self.explosion.create_effect(dot_map, alien_pos);
         self.live_num -= 1;
         // 爆発音再生
+        // wasmでは再生しない
+        #[cfg(not(target_arch = "wasm32"))]
         play_sound(
             self.explosion_se,
             PlaySoundParams {

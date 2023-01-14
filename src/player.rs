@@ -48,6 +48,8 @@ impl Bullet {
         self.live = true;
         self.fire_cnt += 1;
         self.explosion_effect_show = false;
+        // wasmでは再生しない
+        #[cfg(not(target_arch = "wasm32"))]
         play_sound(
             self.se,
             PlaySoundParams {
@@ -288,6 +290,8 @@ impl Player {
         self.explosion_cnt = Some(0);
         self.erase(dot_map, self.pos);
         // 爆発音再生
+        // wasmでは再生しない
+        #[cfg(not(target_arch = "wasm32"))]
         play_sound(
             self.se,
             PlaySoundParams {

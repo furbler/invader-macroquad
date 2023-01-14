@@ -152,6 +152,8 @@ impl Ufo {
         self.explosion.create_effect(dot_map, self.pos);
 
         // 爆発音再生
+        // wasmでは再生しない
+        #[cfg(not(target_arch = "wasm32"))]
         play_sound(
             self.se_explosion,
             PlaySoundParams {
@@ -193,6 +195,8 @@ impl Ufo {
                 }
 
                 // 飛行音再生開始
+                // wasmでは再生しない
+                #[cfg(not(target_arch = "wasm32"))]
                 play_sound(
                     self.se_flying,
                     PlaySoundParams {
