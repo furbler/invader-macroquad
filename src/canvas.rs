@@ -16,6 +16,10 @@ pub const ALL_DOT_WIDTH: i32 = DOT_WIDTH;
 // 上のスコア表示用の4文字分 + 下の残機表示用の1文字分を加える
 pub const ALL_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
 // 1ドットを何ピクセル四方で表示するか(pixel / dot)
+#[cfg(not(target_arch = "wasm32"))]
+pub const SCALE: i32 = 3;
+// wasm版は少し小さくする
+#[cfg(target_arch = "wasm32")]
 pub const SCALE: i32 = 2;
 
 // 指定した色を画面全体の上にかぶせる(alpha値を指定可能)

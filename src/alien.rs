@@ -217,11 +217,17 @@ impl BulletManage {
             bullets,
             plunger_shot_column_table: TableManage {
                 i: 0,
-                table: vec![1, 7, 1, 1, 1, 4, 11, 1, 6, 3, 1, 1, 11, 9, 2, 8],
+                table: vec![1, 7, 1, 1, 1, 4, 11, 1, 6, 3, 1, 1, 11, 9, 2, 8]
+                    .iter()
+                    .map(|x| x - 1)
+                    .collect(),
             },
             squiggly_shot_column_table: TableManage {
                 i: 0,
-                table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10],
+                table: vec![11, 1, 6, 3, 1, 1, 11, 9, 2, 8, 2, 11, 4, 7, 10]
+                    .iter()
+                    .map(|x| x - 1)
+                    .collect(),
             },
             reload_cnt: 48, // 0x30 * 1.5
             speed: 1,
@@ -618,7 +624,7 @@ impl Alien {
             return self.column2index(0);
         }
         let mut column = (pos_x - self.ref_alien_pos.x) as usize / 16;
-        if column > 10 {
+        if 10 < column {
             column = 10
         };
         self.column2index(column)
@@ -626,6 +632,7 @@ impl Alien {
     // 列番号(0..11)のエイリアンが存在していたら一番下の個体のインデックス番号を、全滅していたらNoneを返す
     fn column2index(&self, column: usize) -> Option<usize> {
         let mut i = column;
+
         while i < 55 {
             if self.live[i] {
                 return Some(i);
