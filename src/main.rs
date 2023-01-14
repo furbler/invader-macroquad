@@ -121,12 +121,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         draw_texture_ex(
             game_texture,
             0.,
-            (4 * 8 * canvas::SCALE) as f32,
+            (canvas::TOP_HEIGHT * canvas::SCALE) as f32,
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(
-                    (canvas::DOT_WIDTH * canvas::SCALE) as f32,
-                    (canvas::DOT_HEIGHT * canvas::SCALE) as f32,
+                    (canvas::GAME_WIDTH * canvas::SCALE) as f32,
+                    (canvas::GAME_HEIGHT * canvas::SCALE) as f32,
                 )),
                 ..Default::default()
             },
@@ -134,7 +134,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         // 得点表示
         draw_score(player_bullet.score, player_exploding);
         // 残機表示
-        bottom.draw(player.life, player_exploding, canvas::SCALE);
+        bottom.draw(player.life, player_exploding);
 
         match scene {
             Scene::Title => {
@@ -195,7 +195,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 // すべて消す
                 map.all_clear();
                 // プレイヤーの下の横線
-                map.draw_holizon_line(canvas::DOT_HEIGHT - 1);
+                map.draw_holizon_line(canvas::GAME_HEIGHT - 1);
                 // シールド配置
                 for i in 0..4 {
                     let gap = (shield_data.width as usize + 23) * i;
@@ -328,8 +328,9 @@ async fn load_se_file(path: &str) -> Sound {
 fn window_conf() -> Conf {
     Conf {
         window_title: "invader-macroquad".to_owned(),
-        window_width: canvas::ALL_DOT_WIDTH * canvas::SCALE,
-        window_height: canvas::ALL_DOT_HEIGHT * canvas::SCALE,
+        window_width: canvas::GAME_WIDTH * canvas::SCALE,
+        window_height: (canvas::TOP_HEIGHT + canvas::GAME_HEIGHT + canvas::BOTTOM_HEIGHT)
+            * canvas::SCALE,
         ..Default::default()
     }
 }

@@ -3,18 +3,19 @@ use macroquad::{
     shapes::draw_rectangle,
     window::{screen_height, screen_width},
 };
+// 画面の幅(文字単位)
+const CHAR_WIDTH: i32 = 28;
+// 画面の上部分（スコアなどの表示用）のドット単位の大きさ(28文字x4文字)
+pub const TOP_WIDTH: i32 = 8 * CHAR_WIDTH;
+pub const TOP_HEIGHT: i32 = 8 * 4;
 
-// 1文字8ピクセル分がいくつ入るか
-pub const CHAR_WIDTH: i32 = 28;
-pub const CHAR_HEIGHT: i32 = 26;
-// ドット単位の大きさ
-pub const DOT_WIDTH: i32 = 8 * CHAR_WIDTH;
-pub const DOT_HEIGHT: i32 = 8 * CHAR_HEIGHT;
-// 最終的に表示されるディスプレイの大きさ
-// 幅は変わらない
-pub const ALL_DOT_WIDTH: i32 = DOT_WIDTH;
-// 上のスコア表示用の4文字分 + 下の残機表示用の1文字分を加える
-pub const ALL_DOT_HEIGHT: i32 = DOT_HEIGHT + 8 * 5;
+// メインのゲーム画面のドット単位の大きさ(28文字x26文字)
+pub const GAME_WIDTH: i32 = 8 * CHAR_WIDTH;
+pub const GAME_HEIGHT: i32 = 8 * 26;
+// 画面の上部分（スコアなどの表示用）のドット単位の大きさ(28文字x4文字)
+pub const BOTTOM_WIDTH: i32 = 8 * CHAR_WIDTH;
+pub const BOTTOM_HEIGHT: i32 = 8 * 2;
+
 // 1ドットを何ピクセル四方で表示するか(pixel / dot)
 #[cfg(not(target_arch = "wasm32"))]
 pub const SCALE: i32 = 3;

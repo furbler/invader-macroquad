@@ -75,9 +75,9 @@ impl Bullet {
             BulletType::Rolling => self.update_rolling_sprite(self.pos.y),
         }
         // 赤線に着弾
-        if canvas::DOT_HEIGHT - 1 <= self.pos.y + 7 {
+        if canvas::GAME_HEIGHT - 1 <= self.pos.y + 7 {
             // はみださないようにする
-            self.pos.y = canvas::DOT_HEIGHT - 8;
+            self.pos.y = canvas::GAME_HEIGHT - 8;
             self.pos.x -= 3;
             self.create_explosion_effect(dot_map);
             return;
@@ -85,8 +85,8 @@ impl Bullet {
         // 何かに衝突した場合
         if self.is_collide(dot_map) {
             // プレイヤーのいる高さの範囲内に弾が入っている
-            if canvas::DOT_HEIGHT - 8 * 3 < self.pos.y + 8
-                && self.pos.y < canvas::DOT_HEIGHT - 8 * 2
+            if canvas::GAME_HEIGHT - 8 * 3 < self.pos.y + 8
+                && self.pos.y < canvas::GAME_HEIGHT - 8 * 2
             {
                 // プレイヤーが爆発中でなければ
                 if player.explosion_cnt == None {
@@ -411,7 +411,7 @@ impl Alien {
         sprite_list.push(high_sprite1);
         let table_init_pos_y: Vec<i32> = vec![88, 72, 64, 64, 64, 56, 56, 56]
             .iter()
-            .map(|y| canvas::DOT_HEIGHT - y)
+            .map(|y| canvas::GAME_HEIGHT - y)
             .collect();
         if table_init_pos_y.len() != 8 {
             panic!("エイリアンの初期位置表の要素数は8にしてください。");
@@ -456,7 +456,7 @@ impl Alien {
         self.ref_alien_pos.y = if 1 < stage {
             self.table_init_pos_y[(stage - 2) % 8]
         } else {
-            canvas::DOT_HEIGHT - 112
+            canvas::GAME_HEIGHT - 112
         };
         self.pre_ref_alien_pos = self.ref_alien_pos;
         for i in 0..self.se.len() {
@@ -530,7 +530,7 @@ impl Alien {
     }
     // 一番下のエイリアンがプレイヤーの高さまで侵攻したら真を返す
     pub fn invaded(&self) -> bool {
-        canvas::DOT_HEIGHT - 24 <= self.index2pos(self.i_cursor_alien).y
+        canvas::GAME_HEIGHT - 24 <= self.index2pos(self.i_cursor_alien).y
     }
     // 何かの物体が両側の折り返し地点に到達していたら真を返す
     fn check_bump_side(&mut self, dot_map: &DotMap) {

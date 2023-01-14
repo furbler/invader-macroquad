@@ -214,8 +214,8 @@ impl Player {
     ) -> Self {
         Player {
             width: sprite.len() as i32,
-            pos: IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3),
-            pre_pos: IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3),
+            pos: IVec2::new(8, canvas::GAME_HEIGHT - 8 * 3),
+            pre_pos: IVec2::new(8, canvas::GAME_HEIGHT - 8 * 3),
             const_max_explosion_cnt: 160,
             explosion_cnt: None,
             life: 3,
@@ -232,8 +232,8 @@ impl Player {
         self.life_up = false;
     }
     pub fn reset_stage(&mut self) {
-        self.pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
-        self.pre_pos = IVec2::new(8, canvas::DOT_HEIGHT - 8 * 3);
+        self.pos = IVec2::new(8, canvas::GAME_HEIGHT - 8 * 3);
+        self.pre_pos = IVec2::new(8, canvas::GAME_HEIGHT - 8 * 3);
         self.explosion_cnt = None;
     }
     pub fn set_se_volume(&mut self, volume: i32) {
@@ -268,7 +268,7 @@ impl Player {
             // 左に移動
             self.pos.x -= 1;
         }
-        if self.pos.x + self.width < canvas::DOT_WIDTH - 7
+        if self.pos.x + self.width < canvas::GAME_WIDTH - 7
             && (is_key_down(KeyCode::D) || is_key_down(KeyCode::Right))
         {
             // 右に移動

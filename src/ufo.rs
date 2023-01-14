@@ -171,7 +171,7 @@ impl Ufo {
         self.explosion.update_draw(dot_map);
         // 画面の反対側まで到達した場合
         if (self.move_dir < 0 && self.pos.x < 8)
-            || (0 < self.move_dir && canvas::DOT_WIDTH - 8 <= self.pos.x + self.width)
+            || (0 < self.move_dir && canvas::GAME_WIDTH - 8 <= self.pos.x + self.width)
         {
             self.remove(dot_map);
             return;
@@ -186,7 +186,7 @@ impl Ufo {
                 self.live = true;
                 // プレイヤーの発射数が偶数であれば右から左へ動く
                 if fire_cnt % 2 == 0 {
-                    self.pos.x = canvas::DOT_WIDTH - self.width - 8;
+                    self.pos.x = canvas::GAME_WIDTH - self.width - 8;
                     self.move_dir = -1;
                 } else {
                     // 奇数ならば左から右へ動く

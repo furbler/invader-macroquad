@@ -17,9 +17,9 @@ impl BottomArea {
             exploding_player_texture,
         }
     }
-    pub fn draw(&self, player_life_num: i32, player_exploding: bool, scale: i32) {
+    pub fn draw(&self, player_life_num: i32, player_exploding: bool) {
         let text = &format!("{}", player_life_num);
-        let font_size = (14 * scale) as f32;
+        let font_size = (14 * canvas::SCALE) as f32;
         let font_color;
         let texture;
         if player_exploding {
@@ -35,24 +35,24 @@ impl BottomArea {
         // 指定座標は文字の左下
         draw_text(
             text,
-            (8 * scale) as f32,
-            ((canvas::ALL_DOT_HEIGHT - 1) * scale) as f32,
+            (8 * canvas::SCALE) as f32,
+            ((canvas::TOP_HEIGHT + canvas::GAME_HEIGHT + 8) * canvas::SCALE) as f32,
             font_size,
             font_color,
         );
         // 残機-1の数だけプレイヤーの画像を並べる:w
-        let mut x = (24 * scale) as f32;
-        let dx = (2 * 8 * scale) as f32;
+        let mut x = (24 * canvas::SCALE) as f32;
+        let dx = (2 * 8 * canvas::SCALE) as f32;
         for _ in 0..player_life_num - 1 {
             draw_texture_ex(
                 texture,
                 x,
-                ((canvas::ALL_DOT_HEIGHT - 8) * scale) as f32,
+                ((canvas::TOP_HEIGHT + canvas::GAME_HEIGHT) * canvas::SCALE) as f32,
                 WHITE,
                 DrawTextureParams {
                     dest_size: Some(Vec2::new(
-                        self.display_width * scale as f32,
-                        (8 * scale) as f32,
+                        self.display_width * canvas::SCALE as f32,
+                        (8 * canvas::SCALE) as f32,
                     )),
                     ..Default::default()
                 },

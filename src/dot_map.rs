@@ -3,38 +3,42 @@ use macroquad::texture::{FilterMode, Texture2D};
 use std::io::Write;
 
 pub struct DotMap {
-    // ドット単位の処理をする範囲(8bit x (上下26 x 左右28))
-    // 横8x28、縦26個のu8がある二次元配列
+    // ドット単位の処理をする範囲
     // 上からy文字目、左からxドット目にあるu8はmap[y][x]
-    pub map: [[u8; canvas::DOT_WIDTH as usize]; canvas::CHAR_HEIGHT as usize],
+    pub top: [[u8; canvas::TOP_WIDTH as usize]; (canvas::TOP_HEIGHT / 8) as usize],
+    // 横8x28、縦26個のu8がある二次元配列
+    pub map: [[u8; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize],
+    pub bottom: [[u8; canvas::BOTTOM_WIDTH as usize]; (canvas::BOTTOM_HEIGHT / 8) as usize],
 }
 
 impl DotMap {
     pub fn new() -> Self {
         // 0クリアしたドットマップを生成
         DotMap {
-            map: [[0; canvas::DOT_WIDTH as usize]; canvas::CHAR_HEIGHT as usize],
+            top: [[0; canvas::TOP_WIDTH as usize]; (canvas::TOP_HEIGHT / 8) as usize],
+            map: [[0; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize],
+            bottom: [[0; canvas::BOTTOM_WIDTH as usize]; (canvas::BOTTOM_HEIGHT / 8) as usize],
         }
     }
     // すべて消す
     pub fn all_clear(&mut self) {
-        self.map = [[0; canvas::DOT_WIDTH as usize]; canvas::CHAR_HEIGHT as usize]
+        self.map = [[0; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize]
     }
     // 指定したドット単位のY座標のすべてを1にして水平の線を引く
     pub fn draw_holizon_line(&mut self, y: i32) {
         let y = y as usize;
         let char_pos_y = y / 8;
         let mask_val: u8 = 1 << (y % 8);
-        for i in 0..canvas::DOT_WIDTH as usize {
+        for i in 0..canvas::GAME_WIDTH as usize {
             self.map[char_pos_y][i] = self.map[char_pos_y][i] | mask_val;
         }
     }
     // DotMapを1ピクセル4バイトでrgbaを表し、u8のベクタにまとめる
     fn convert_to_color_bytes(&self, player_exploding: bool) -> Vec<u8> {
         let mut color_bytes: Vec<u8> = Vec::new();
-        for i_char in 0..canvas::CHAR_HEIGHT as usize {
+        for i_char in 0..(canvas::GAME_HEIGHT / 8) as usize {
             for bit in 0..8 {
-                for pos_x in 0..canvas::DOT_WIDTH as usize {
+                for pos_x in 0..canvas::GAME_WIDTH as usize {
                     if self.map[i_char][pos_x] & (1 << bit) == 0 {
                         color_bytes.write(&[0, 0, 0, 255]).unwrap();
                     } else {
@@ -59,7 +63,8 @@ impl DotMap {
 
 // RGBAデータをテクスチャデータに変換
 fn rgba2texture(rgba: Vec<u8>) -> Texture2D {
-    let texture = Texture2D::from_rgba8(canvas::DOT_WIDTH as u16, canvas::DOT_HEIGHT as u16, &rgba);
+    let texture =
+        Texture2D::from_rgba8(canvas::GAME_WIDTH as u16, canvas::GAME_HEIGHT as u16, &rgba);
     texture.set_filter(FilterMode::Nearest);
     texture
 }
