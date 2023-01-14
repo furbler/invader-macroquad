@@ -292,63 +292,6 @@ pub fn ret_dot_data(name: &str) -> DotShape {
             "_ _ # _ _ _ # _ _ _ # _ _ _ _ # _ _ _ _ _ _ _ _",
         ]),
     };
-    let num_0 = DotShape {
-        width: 8,
-        height: 8,
-        dot_map: convert_dot_map(vec![
-            "_ _ _ _ _ _ _ _",
-            "_ _ # # # _ _ _",
-            "_ # _ _ _ # _ _",
-            "_ # _ _ # # _ _",
-            "_ # _ # _ # _ _",
-            "_ # # _ _ # _ _",
-            "_ # _ _ _ # _ _",
-            "_ _ # # # _ _ _",
-        ]),
-    };
-    let num_1 = DotShape {
-        width: 8,
-        height: 8,
-        dot_map: convert_dot_map(vec![
-            "_ _ _ _ _ _ _ _",
-            "_ _ _ # _ _ _ _",
-            "_ _ # # _ _ _ _",
-            "_ _ _ # _ _ _ _",
-            "_ _ _ # _ _ _ _",
-            "_ _ _ # _ _ _ _",
-            "_ _ _ # _ _ _ _",
-            "_ _ # # # _ _ _",
-        ]),
-    };
-    let num_3 = DotShape {
-        width: 8,
-        height: 8,
-        dot_map: convert_dot_map(vec![
-            "_ _ _ _ _ _ _ _",
-            "_ # # # # # _ _",
-            "_ _ _ _ _ # _ _",
-            "_ _ _ _ # _ _ _",
-            "_ _ _ # # _ _ _",
-            "_ _ _ _ _ # _ _",
-            "_ # _ _ _ # _ _",
-            "_ _ # # # _ _ _",
-        ]),
-    };
-    let num_5 = DotShape {
-        width: 8,
-        height: 8,
-        dot_map: convert_dot_map(vec![
-            "_ _ _ _ _ _ _ _",
-            "_ # # # # # _ _",
-            "_ # _ _ _ _ _ _",
-            "_ # # # # _ _ _",
-            "_ _ _ _ _ # _ _",
-            "_ _ _ _ _ # _ _",
-            "_ # _ _ _ # _ _",
-            "_ _ # # # _ _ _",
-        ]),
-    };
-
     match name {
         "player" => player,
         "bullet_player" => bullet_player,
@@ -366,16 +309,168 @@ pub fn ret_dot_data(name: &str) -> DotShape {
         "ufo_explosion" => ufo_explosion,
         "player_explosion_1" => player_explosion_1,
         "player_explosion_2" => player_explosion_2,
-        "num_0" => num_0,
-        "num_1" => num_1,
-        "num_3" => num_3,
-        "num_5" => num_5,
         _ => panic!(
             "{}のドットマップ取得に失敗しました。プログラムを終了します。",
             name
         ), // ドットマップ取得失敗
     }
 }
+// 文字サイズ(8bit x 8bit)のドットマップを返す
+pub fn char_dot_data() -> Vec<DotShape> {
+    let mut num = Vec::new();
+    // 0
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ # # # _ _ _",
+            "_ # _ _ _ # _ _",
+            "_ # _ _ # # _ _",
+            "_ # _ # _ # _ _",
+            "_ # # _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # _ _ _",
+        ]),
+    });
+    // 1
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ _ # _ _ _ _",
+            "_ _ # # _ _ _ _",
+            "_ _ _ # _ _ _ _",
+            "_ _ _ # _ _ _ _",
+            "_ _ _ # _ _ _ _",
+            "_ _ _ # _ _ _ _",
+            "_ _ # # # _ _ _",
+        ]),
+    });
+    // 2
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ # # # _ _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ _ _ _ # _ _",
+            "_ _ _ # # _ _ _",
+            "_ _ # _ _ _ _ _",
+            "_ # _ _ _ _ _ _",
+            "_ # # # # # _ _",
+        ]),
+    });
+    // 3
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ # # # # # _ _",
+            "_ _ _ _ _ # _ _",
+            "_ _ _ _ # _ _ _",
+            "_ _ _ # # _ _ _",
+            "_ _ _ _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # _ _ _",
+        ]),
+    });
+    // 4
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ _ _ # _ _ _",
+            "_ _ _ # # _ _ _",
+            "_ _ # _ # _ _ _",
+            "_ # _ _ # _ _ _",
+            "_ # # # # # _ _",
+            "_ _ _ _ # _ _ _",
+            "_ _ _ _ # _ _ _",
+        ]),
+    });
+    // 5
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ # # # # # _ _",
+            "_ # _ _ _ _ _ _",
+            "_ # # # # _ _ _",
+            "_ _ _ _ _ # _ _",
+            "_ _ _ _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # _ _ _",
+        ]),
+    });
+    // 6
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ _ # # # _ _",
+            "_ _ # _ _ _ _ _",
+            "_ # _ _ _ _ _ _",
+            "_ # # # # _ _ _",
+            "_ # _ _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # _ _ _",
+        ]),
+    });
+    // 7
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ # # # # # _ _",
+            "_ _ _ _ _ # _ _",
+            "_ _ _ _ # _ _ _",
+            "_ _ _ # _ _ _ _",
+            "_ _ # _ _ _ _ _",
+            "_ _ # _ _ _ _ _",
+            "_ _ # _ _ _ _ _",
+        ]),
+    });
+    // 8
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ # # # _ _ _",
+            "_ # _ _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # _ _ _",
+            "_ # _ _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # _ _ _",
+        ]),
+    });
+    // 9
+    num.push(DotShape {
+        width: 8,
+        height: 8,
+        dot_map: convert_dot_map(vec![
+            "_ _ _ _ _ _ _ _",
+            "_ _ # # # _ _ _",
+            "_ # _ _ _ # _ _",
+            "_ # _ _ _ # _ _",
+            "_ _ # # # # _ _",
+            "_ _ _ _ _ # _ _",
+            "_ _ _ _ # _ _ _",
+            "_ # # # _ _ _ _",
+        ]),
+    });
+    num
+}
+
 // 描画部分を真、非描画部分を偽とするドットマップを返す
 fn convert_dot_map(dot_map: Vec<&str>) -> Vec<Vec<bool>> {
     let mut bool_map = Vec::new();

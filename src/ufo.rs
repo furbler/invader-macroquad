@@ -40,16 +40,16 @@ impl Explosion {
         let i_sprite: Vec<usize>;
         match self.score {
             50 => {
-                i_sprite = vec![3, 0];
+                i_sprite = vec![5, 0];
             }
             100 => {
                 i_sprite = vec![1, 0, 0];
             }
             150 => {
-                i_sprite = vec![1, 3, 0];
+                i_sprite = vec![1, 5, 0];
             }
             300 => {
-                i_sprite = vec![2, 0, 0];
+                i_sprite = vec![3, 0, 0];
             }
             _ => panic!("UFOの点数が不正です。"),
         }

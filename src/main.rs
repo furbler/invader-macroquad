@@ -53,10 +53,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let squid_close_data = sprite::ret_dot_data("squid_close");
     let alien_explosion_data = sprite::ret_dot_data("alien_explosion");
     let alien_bullet_explosion_data = sprite::ret_dot_data("alien_bullet_explosion");
-    let num_0 = sprite::ret_dot_data("num_0");
-    let num_1 = sprite::ret_dot_data("num_1");
-    let num_3 = sprite::ret_dot_data("num_3");
-    let num_5 = sprite::ret_dot_data("num_5");
+    let num_data = sprite::char_dot_data();
 
     // 各構造体初期化
     let player_sprite = player_data.create_dot_map();
@@ -73,12 +70,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         player_bullet_explosion_data.create_dot_map(),
         load_se_file("audio/shoot.wav").await,
     );
-    let num_list = vec![
-        num_0.create_dot_map(),
-        num_1.create_dot_map(),
-        num_3.create_dot_map(),
-        num_5.create_dot_map(),
-    ];
+    let num_list = num_data.iter().map(|n| n.create_dot_map()).collect();
+
     let mut ufo = Ufo::new(
         ufo_data.create_dot_map(),
         ufo_explosion_data.create_dot_map(),
