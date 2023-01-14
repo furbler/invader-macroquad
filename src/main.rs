@@ -60,12 +60,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let player_sprite = player_data.create_dot_map();
 
     let num_list: Vec<Vec<u8>> = num_data.iter().map(|n| n.create_dot_map()).collect();
-    let mut top_area = top_area::TopArea::new(num_list.clone());
+    let mut top = top_area::TopArea::new(num_list.clone());
 
     // 画面下部
-    let bottom = bottom_area::BottomArea::new(&player_sprite);
+    let mut bottom = bottom_area::BottomArea::new(num_list.clone(), player_sprite.clone());
     let mut player = Player::new(
-        player_sprite,
+        player_sprite.clone(),
         player_explosion_1_data.create_dot_map(),
         player_explosion_2_data.create_dot_map(),
         load_se_file("audio/player_explosion.wav").await,
@@ -114,8 +114,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
-        let top_texture = top_area.dot_map2texture(player_exploding);
+        let top_texture = top.dot_map2texture(player_exploding);
         let game_texture = map.dot_map2texture(player_exploding);
+        let bottom_texture = bottom.dot_map2texture(player_exploding);
         draw_texture_ex(
             top_texture,
             0.,
@@ -142,10 +143,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             },
         );
+        draw_texture_ex(
+            bottom_texture,
+            0.,
+            ((canvas::TOP_HEIGHT + canvas::GAME_HEIGHT) * canvas::SCALE) as f32,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(
+                    (canvas::BOTTOM_WIDTH * canvas::SCALE) as f32,
+                    (canvas::BOTTOM_HEIGHT * canvas::SCALE) as f32,
+                )),
+                ..Default::default()
+            },
+        );
         // 得点表示
-        top_area.draw_score(player_bullet.score);
+        top.draw_score(player_bullet.score);
         // 残機表示
-        bottom.draw(player.life, player_exploding);
+        bottom.draw(player.life);
 
         match scene {
             Scene::Title => {
@@ -153,7 +167,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     scene = Scene::LaunchGame(10);
                     // 前回のドットマップをすべて消す
                     map.all_clear();
-                    top_area.all_clear();
+                    top.all_clear();
+                    bottom.all_clear();
                 }
                 // 画面全体を背景色(黒)クリア
                 clear_background(BLACK);
@@ -206,7 +221,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 scene = Scene::Play;
                 // すべて消す
                 map.all_clear();
-                top_area.all_clear();
+                top.all_clear();
+                bottom.all_clear();
                 // プレイヤーの下の横線
                 map.draw_holizon_line(canvas::GAME_HEIGHT - 1);
                 // シールド配置
