@@ -555,7 +555,13 @@ impl Alien {
     pub fn remove(&mut self, dot_map: &mut DotMap, i: usize) {
         self.live[i] = false;
         let width = self.sprite_list[2 * Alien::ret_alien_type(i)].len();
-        let alien_pos = self.index2pos(i);
+        let alien_pos = if i == self.i_cursor_alien {
+            // カーソルエイリアンだった場合、リファレンスエイリアンとは同期していない
+            self.index2pre_pos(i)
+        } else {
+            self.index2pos(i)
+        };
+
         let char_y = (alien_pos.y / 8) as usize;
         for dx in 0..width {
             dot_map.map[char_y][alien_pos.x as usize + dx] = 0;
@@ -631,16 +637,21 @@ impl Alien {
 
     // エイリアンのインデックス番号から座標を返す
     fn index2pos(&self, i: usize) -> IVec2 {
-        // リファレンスエイリアンと同期済
-        let ref_pos = if i <= self.i_cursor_alien {
-            self.ref_alien_pos
-        } else {
-            // リファレンスエイリアンとずれている
-            self.pre_ref_alien_pos
-        };
         let dx = i as i32 % 11;
         let dy = i as i32 / 11;
-        IVec2::new(ref_pos.x + 16 * dx, ref_pos.y - 16 * dy)
+        // リファレンスエイリアンと同期済
+        if i <= self.i_cursor_alien {
+            IVec2::new(
+                self.ref_alien_pos.x + 16 * dx,
+                self.ref_alien_pos.y - 16 * dy,
+            )
+        } else {
+            // リファレンスエイリアンとずれている
+            IVec2::new(
+                self.pre_ref_alien_pos.x + 16 * dx,
+                self.pre_ref_alien_pos.y - 16 * dy,
+            )
+        }
     }
     // エイリアンのインデックス番号から、リファレンスエイリアンが動く前に対応した位置を返す
     fn index2pre_pos(&self, i: usize) -> IVec2 {
