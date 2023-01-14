@@ -5,24 +5,25 @@ use std::io::Write;
 pub struct DotMap {
     // ドット単位の処理をする範囲
     // 上からy文字目、左からxドット目にあるu8はmap[y][x]
-    pub top: [[u8; canvas::TOP_WIDTH as usize]; (canvas::TOP_HEIGHT / 8) as usize],
     // 横8x28、縦26個のu8がある二次元配列
-    pub map: [[u8; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize],
-    pub bottom: [[u8; canvas::BOTTOM_WIDTH as usize]; (canvas::BOTTOM_HEIGHT / 8) as usize],
+    pub map: Vec<Vec<u8>>,
+    pub bottom: Vec<Vec<u8>>,
 }
 
 impl DotMap {
     pub fn new() -> Self {
         // 0クリアしたドットマップを生成
         DotMap {
-            top: [[0; canvas::TOP_WIDTH as usize]; (canvas::TOP_HEIGHT / 8) as usize],
-            map: [[0; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize],
-            bottom: [[0; canvas::BOTTOM_WIDTH as usize]; (canvas::BOTTOM_HEIGHT / 8) as usize],
+            map: vec![vec![0; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize],
+            bottom: vec![
+                vec![0; canvas::BOTTOM_WIDTH as usize];
+                (canvas::BOTTOM_HEIGHT / 8) as usize
+            ],
         }
     }
     // すべて消す
     pub fn all_clear(&mut self) {
-        self.map = [[0; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize]
+        self.map = vec![vec![0; canvas::GAME_WIDTH as usize]; (canvas::GAME_HEIGHT / 8) as usize]
     }
     // 指定したドット単位のY座標のすべてを1にして水平の線を引く
     pub fn draw_holizon_line(&mut self, y: i32) {
@@ -76,6 +77,7 @@ pub enum Color {
     Green,     // 緑色
     Turquoise, // 水色
     Yellow,    // 黄色
+    White,     // 白色
 }
 // 指定した色に対応するrgbaの値を返す
 pub fn set_color(color: Color) -> [u8; 4] {
@@ -86,6 +88,7 @@ pub fn set_color(color: Color) -> [u8; 4] {
         Color::Green => [98, 222, 109, 255],     // 緑色
         Color::Turquoise => [68, 200, 210, 255], // 水色
         Color::Yellow => [220, 210, 30, 255],    // 黄色
+        Color::White => [220, 220, 220, 255],    // 白色
     }
 }
 // 引数の位置に対応したrgba値を返す

@@ -6,6 +6,7 @@ pub trait ArraySprite {
     fn pos(&self) -> IVec2;
     // スプライト
     fn sprite(&self) -> &[u8];
+
     // バイト境界をまたぐ(y軸方向へ連続的に移動する)物体の描画を透過ありで行う
     fn array_shifted_sprite(&self, dot_map: &mut DotMap) {
         let pos = self.pos();
@@ -28,21 +29,11 @@ pub trait ArraySprite {
     }
     // バイト境界をまたがない物体の描画を透過なしで行う(上書き)
     fn array_sprite(&self, dot_map: &mut DotMap) {
-        let pos = self.pos();
-        let sprite = self.sprite();
-        let char_y = (pos.y / 8) as usize;
-        for dx in 0..sprite.len() {
-            dot_map.map[char_y][pos.x as usize + dx] = sprite[dx];
-        }
+        array_sprite(&mut dot_map.map, self.pos(), self.sprite());
     }
     // 引数の座標からスプライトのサイズの矩形部分を消す
     fn erase(&self, dot_map: &mut DotMap, pos: IVec2) {
-        let width = self.sprite().len();
-        // 前回描画した部分を0で消す
-        let char_y = (pos.y / 8) as usize;
-        for dx in 0..width {
-            dot_map.map[char_y][pos.x as usize + dx] = 0;
-        }
+        erase(&mut dot_map.map, pos, self.sprite());
     }
     // スプライトの部分のみ消し、残りは透過する
     fn erase_shifted(&self, dot_map: &mut DotMap, pos: IVec2) {
@@ -86,5 +77,22 @@ pub trait ArraySprite {
             }
         }
         false
+    }
+}
+
+// バイト境界をまたがない物体の描画を透過なしで行う(上書き)
+pub fn array_sprite(dot_map: &mut Vec<Vec<u8>>, pos: IVec2, sprite: &[u8]) {
+    let char_y = (pos.y / 8) as usize;
+    for dx in 0..sprite.len() {
+        dot_map[char_y][pos.x as usize + dx] = sprite[dx];
+    }
+}
+
+// 引数の座標からスプライトのサイズの矩形部分を消す
+pub fn erase(dot_map: &mut Vec<Vec<u8>>, pos: IVec2, sprite: &[u8]) {
+    // 前回描画した部分を0で消す
+    let char_y = (pos.y / 8) as usize;
+    for dx in 0..sprite.len() {
+        dot_map[char_y][pos.x as usize + dx] = 0;
     }
 }

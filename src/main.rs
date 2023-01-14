@@ -17,6 +17,7 @@ mod dot_map;
 mod pause;
 mod player;
 mod sprite;
+mod top_area;
 mod ufo;
 
 #[derive(PartialEq)]
@@ -57,6 +58,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 各構造体初期化
     let player_sprite = player_data.create_dot_map();
+
+    let num_list: Vec<Vec<u8>> = num_data.iter().map(|n| n.create_dot_map()).collect();
+    let mut top_area = top_area::TopArea::new(num_list.clone());
+
     // 画面下部
     let bottom = bottom_area::BottomArea::new(&player_sprite);
     let mut player = Player::new(
@@ -70,14 +75,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         player_bullet_explosion_data.create_dot_map(),
         load_se_file("audio/shoot.wav").await,
     );
-    let num_list = num_data.iter().map(|n| n.create_dot_map()).collect();
 
     let mut ufo = Ufo::new(
         ufo_data.create_dot_map(),
         ufo_explosion_data.create_dot_map(),
         load_se_file("audio/ufo_flying.wav").await,
         load_se_file("audio/ufo_explosion.wav").await,
-        num_list,
+        num_list.clone(),
     );
     let shield = shield_data.create_dot_map();
 
@@ -110,7 +114,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         // 画面全体を背景色(黒)クリア
         clear_background(BLACK);
+        let top_texture = top_area.dot_map2texture(player_exploding);
         let game_texture = map.dot_map2texture(player_exploding);
+        draw_texture_ex(
+            top_texture,
+            0.,
+            0.,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(Vec2::new(
+                    (canvas::TOP_WIDTH * canvas::SCALE) as f32,
+                    (canvas::TOP_HEIGHT * canvas::SCALE) as f32,
+                )),
+                ..Default::default()
+            },
+        );
         draw_texture_ex(
             game_texture,
             0.,
@@ -125,7 +143,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             },
         );
         // 得点表示
-        draw_score(player_bullet.score, player_exploding);
+        top_area.draw_score(player_bullet.score);
         // 残機表示
         bottom.draw(player.life, player_exploding);
 
@@ -133,8 +151,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Scene::Title => {
                 if is_key_pressed(KeyCode::Enter) {
                     scene = Scene::LaunchGame(10);
-                    // すべて消す
+                    // 前回のドットマップをすべて消す
                     map.all_clear();
+                    top_area.all_clear();
                 }
                 // 画面全体を背景色(黒)クリア
                 clear_background(BLACK);
@@ -187,6 +206,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 scene = Scene::Play;
                 // すべて消す
                 map.all_clear();
+                top_area.all_clear();
                 // プレイヤーの下の横線
                 map.draw_holizon_line(canvas::GAME_HEIGHT - 1);
                 // シールド配置
@@ -231,6 +251,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 // 一定時間経過したらタイトル画面に戻る
                 if cnt < 0 {
                     scene = Scene::Title;
+                    player_bullet.score = 0;
                 } else {
                     scene = Scene::Gameover(cnt - 1);
                     // プレイヤーを爆発させる
@@ -279,25 +300,6 @@ fn draw_title() {
     );
 }
 
-// 上に獲得得点を表示
-fn draw_score(score: i32, player_exploding: bool) {
-    let text = &format!("{:0>5}", score);
-    let font_size = (14 * canvas::SCALE) as f32;
-    // プレイヤーの爆発中は赤色にする
-    let color = if player_exploding {
-        Color::new(0.82, 0., 0., 1.00)
-    } else {
-        Color::new(0.9, 0.9, 0.9, 1.00)
-    };
-    // 指定座標は文字の左下
-    draw_text(
-        text,
-        (24 * canvas::SCALE) as f32,
-        (32 * canvas::SCALE) as f32,
-        font_size,
-        color,
-    );
-}
 // ゲームオーバー表示
 fn draw_gameover_message() {
     let text = "Game over";
