@@ -475,8 +475,10 @@ impl Alien {
         self.se_interval += 1;
 
         if self.live[self.i_cursor_alien] {
-            // カーソルエイリアンの前回描画した移動前の部分を0で消す
-            self.erase(dot_map, self.index2pre_pos(self.i_cursor_alien));
+            // カーソルエイリアンの移動後の真上の（16 x 8）ドットの範囲を消す
+            let mut alien_top_pos = self.index2pos(self.i_cursor_alien);
+            alien_top_pos.y -= 8;
+            self.erase(dot_map, alien_top_pos);
             // 移動後を描画する
             self.array_sprite(dot_map);
         }
