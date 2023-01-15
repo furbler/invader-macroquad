@@ -166,7 +166,7 @@ impl Ufo {
         self.explosion.score = score;
         score
     }
-    pub fn update(&mut self, dot_map: &mut DotMap, fire_cnt: i32) {
+    pub fn update(&mut self, dot_map: &mut DotMap, fire_cnt: i32, alien_num: i32) {
         self.pre_pos = self.pos;
         self.explosion.update_draw(dot_map);
         // 画面の反対側まで到達した場合
@@ -180,8 +180,8 @@ impl Ufo {
         if self.live {
             self.pos.x += self.move_dir;
         } else {
-            // 消滅してから一定時間経過したら
-            if time::get_time() - self.lapse_time > 5. {
+            // 消滅してから一定時間経過して、かつエイリアンの数が8以上だったら
+            if 25. < time::get_time() - self.lapse_time && 7 < alien_num {
                 // UFOが出現する瞬間
                 self.live = true;
                 // プレイヤーの発射数が偶数であれば右から左へ動く

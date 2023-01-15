@@ -186,7 +186,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
 
                 ufo.set_se_volume(volume);
-                ufo.update(&mut map, player_bullet.fire_cnt);
+                ufo.update(&mut map, player_bullet.fire_cnt, alien.live_num);
 
                 alien.set_se_volume(volume);
                 alien.update(&mut map, player_exploding);
