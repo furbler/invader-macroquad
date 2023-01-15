@@ -180,17 +180,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     scene = Scene::Pause;
                 }
                 // 更新処理
-                player.set_se_volume(volume);
-                player.update(&mut map);
-                player_bullet.set_se_volume(volume);
-                player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
-
                 ufo.set_se_volume(volume);
                 ufo.update(&mut map, player_bullet.fire_cnt, alien.live_num);
 
                 alien.set_se_volume(volume);
                 alien.update(&mut map, player_exploding);
                 alien_bullets.update(&mut map, &mut player, &mut alien, player_bullet.score);
+
+                player.set_se_volume(volume);
+                player.update(&mut map);
+                player_bullet.set_se_volume(volume);
+                player_bullet.update(&mut map, &mut player, &mut ufo, &mut alien);
+
                 // エイリアンが全滅したら
                 if alien.live_num <= 0 {
                     // 次のステージへ進む

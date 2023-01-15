@@ -148,9 +148,8 @@ impl Bullet {
             }
         }
         // 自身のx座標が爆発エフェクトの中心になるようずらす
-        self.pos.x = self.pos.x - 5;
-        // 少し上にずらす
-        self.pos.y -= 2;
+        self.pos.x = self.pos.x - 4;
+        self.pos.y += 2;
     }
 
     // プレイヤーの弾をドットマップに描画(縦方向のバイト境界をまたぐ可能性有り)

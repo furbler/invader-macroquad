@@ -76,7 +76,7 @@ pub fn ret_dot_data(name: &str) -> DotShape {
     let bullet_player = DotShape {
         width: 1,
         height: 8,
-        dot_map: convert_dot_map(vec!["#", "#", "#", "#", "#", "#", "#", "#"]),
+        dot_map: convert_dot_map(vec!["_", "_", "_", "_", "#", "#", "#", "#"]),
     };
 
     let player_explosion_1 = DotShape {

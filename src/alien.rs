@@ -41,7 +41,7 @@ impl Bullet {
     }
     fn fire(&mut self, alien_pos: IVec2, speed: i32) {
         // 発射するエイリアンより少し下から発射する
-        self.pos = IVec2::new(alien_pos.x + 5, alien_pos.y + 16);
+        self.pos = IVec2::new(alien_pos.x + 8, alien_pos.y + 16);
         self.live = true;
         self.flying_cnt = 0;
         self.speed = speed;
@@ -563,12 +563,7 @@ impl Alien {
     pub fn remove(&mut self, dot_map: &mut DotMap, i: usize) {
         self.live[i] = false;
         let width = self.sprite_list[2 * Alien::ret_alien_type(i)].len();
-        let alien_pos = if i == self.i_cursor_alien {
-            // カーソルエイリアンだった場合、リファレンスエイリアンとは同期していない
-            self.index2pre_pos(i)
-        } else {
-            self.index2pos(i)
-        };
+        let alien_pos = self.index2pos(i);
 
         let char_y = (alien_pos.y / 8) as usize;
         for dx in 0..width {
@@ -661,15 +656,6 @@ impl Alien {
                 self.pre_ref_alien_pos.y - 16 * dy,
             )
         }
-    }
-    // エイリアンのインデックス番号から、リファレンスエイリアンが動く前に対応した位置を返す
-    fn index2pre_pos(&self, i: usize) -> IVec2 {
-        let dx = i as i32 % 11;
-        let dy = i as i32 / 11;
-        IVec2::new(
-            self.pre_ref_alien_pos.x + 16 * dx,
-            self.pre_ref_alien_pos.y - 16 * dy,
-        )
     }
     pub fn index2score(i: usize) -> i32 {
         match Alien::ret_alien_type(i) {
